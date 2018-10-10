@@ -2,7 +2,6 @@ package org.broadinstitute.hellbender.utils.variant;
 
 import com.google.common.annotations.VisibleForTesting;
 import htsjdk.samtools.SAMSequenceDictionary;
-import htsjdk.samtools.util.CollectionUtil;
 import htsjdk.samtools.util.IOUtil;
 import htsjdk.samtools.util.Locatable;
 import htsjdk.tribble.TribbleException;
@@ -21,6 +20,7 @@ import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.broadinstitute.hellbender.tools.spark.sv.discovery.SimpleSVType;
 import org.broadinstitute.hellbender.tools.walkers.genotyper.*;
 import org.broadinstitute.hellbender.utils.BaseUtils;
 import org.broadinstitute.hellbender.utils.MathUtils;
@@ -33,6 +33,7 @@ import java.io.Serializable;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class GATKVariantContextUtils {
 
@@ -1880,6 +1881,18 @@ public final class GATKVariantContextUtils {
         }
 
         return true;
+    }
+
+    // TODO: Docs
+    // TODO: Tests
+    public static boolean isStructuralVariantContext(final VariantContext vc) {
+        for (final Allele a: vc.getAlternateAlleles()) {
+            final String representation = a.getDisplayString();
+            if (Stream.of(SimpleSVType.SupportedType.values()).anyMatch(s -> SimpleSVType.createBracketedSymbAlleleString(s.toString()).equals(representation))) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 
