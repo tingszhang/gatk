@@ -22,7 +22,6 @@ import org.broadinstitute.hellbender.tools.spark.sv.discovery.SimpleSVType;
 import org.broadinstitute.hellbender.utils.SimpleInterval;
 import org.broadinstitute.hellbender.utils.codecs.gencode.*;
 import org.broadinstitute.hellbender.utils.io.IOUtils;
-import org.broadinstitute.hellbender.utils.reference.ReferenceBases;
 import org.broadinstitute.hellbender.utils.test.FuncotatorTestUtils;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -1628,7 +1627,7 @@ public class GencodeFuncotationFactoryUnitTest extends GATKBaseTest {
 
         final GencodeFuncotationBuilder builder =
                 GencodeFuncotationFactory.createGencodeFuncotationBuilderWithTrivialFieldsPopulated(variant, altAllele,
-                        gtfFeature, transcript, "TEST");
+                        transcript, "TEST");
         final GencodeFuncotation gf = builder.gencodeFuncotation;
 
         // Ultra-trivial checks:
@@ -1672,8 +1671,7 @@ public class GencodeFuncotationFactoryUnitTest extends GATKBaseTest {
                                                        final String dataSourceName,
                                                        final GencodeFuncotation expected) {
 
-        final GencodeFuncotation funcotation = GencodeFuncotationFactory.createDefaultFuncotationsOnProblemVariant(
-                variant, altAllele, gtfFeature, reference, transcript, version, dataSourceName, "TEST");
+        final GencodeFuncotation funcotation = GencodeFuncotationFactory.createDefaultFuncotationsOnProblemVariant(variant, altAllele, reference, transcript, version, dataSourceName, "TEST");
         Assert.assertEquals( funcotation, expected );
     }
 
