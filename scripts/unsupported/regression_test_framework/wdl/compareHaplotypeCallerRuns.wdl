@@ -5,8 +5,10 @@
 #   Required:
 #     String gatk_docker                                -  GATK Docker image in which to run, which contains the new HaplotypeCaller to be tested.
 #
-#
 #   Optional:
+#
+#      String? analysis_docker                          -  GATK Docker image containing analysis packages to be run.
+#                                                          If not provided, will default to gatk_docker
 #
 #     HaplotypeCaller:
 #       File? interval_list                             -  Interval list over which to call variants on the given BAM file.
@@ -54,6 +56,10 @@ workflow ToolComparisonWdl {
     # Output bucket name:
     String output_bucket_base_location = "https://console.cloud.google.com/storage/browser/haplotypecallerspark-evaluation/testSets/"
 
+    # Set the analysis docker:
+    String? analysis_docker
+    String analysis_docker_final = if (defined(analysis_docker)) then "" + analysis_docker else gatk_docker
+
     File? gatk4_jar_override
     Int? mem_gb
     Int? preemptible_attempts
@@ -77,8 +83,8 @@ workflow ToolComparisonWdl {
 
         # This is kind of a total hack
         Boolean isUsingIntervals = sub(input_base_name, "Pond.*", "") == "Nex"
-        File? garbageFile
-        File? interval_list_final = if !isUsingIntervals then interval_list else garbageFile
+        File? emptyFileVariable
+        File? interval_list_final = if !isUsingIntervals then interval_list else emptyFileVariable
 
         # ================================================================================================
         # Run the tool itself:
@@ -129,8 +135,8 @@ workflow ToolComparisonWdl {
 
                 output_base_name          = outputName,
 
-                gatk_docker               = gatk_docker,
-                gatk_override             = gatk4_jar_override,
+                gatk_docker               = analysis_docker_final,
+                #gatk_override             = gatk4_jar_override,
                 mem                       = mem_gb,
                 preemptible_attempts      = preemptible_attempts,
                 disk_space_gb             = disk_space_gb,
@@ -146,8 +152,8 @@ workflow ToolComparisonWdl {
                 truth_vcf_idx = truthIndex,
                 intervals = interval_list_final,
 
-                gatk_docker = gatk_docker,
-                gatk_override = gatk4_jar_override,
+                gatk_docker = analysis_docker_final,
+                #gatk_override = gatk4_jar_override,
                 mem_gb = mem_gb,
                 disk_space_gb = disk_space_gb,
                 cpu = cpu,
@@ -157,7 +163,7 @@ workflow ToolComparisonWdl {
 
         call analysis_3_wdl.CompareTimingTask {
             input:
-                gatk_docker = gatk_docker,
+                gatk_docker = analysis_docker_final,
                 truth_timing_file = truthVcf + ".timingInformation.txt",
                 call_timing_file = HaplotypeCallerTask.timing_info
         }

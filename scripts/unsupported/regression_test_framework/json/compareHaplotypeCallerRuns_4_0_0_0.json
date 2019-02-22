@@ -1,8 +1,8 @@
 {
-  "ToolComparisonWdl.gatk_docker": "broadinstitute/gatk:4.1.0.0",
+  "ToolComparisonWdl.gatk_docker": "broadinstitute/gatk:4.0.0.0",
   "ToolComparisonWdl.analysis_docker": "broadinstitute/gatk:4.1.0.0",
 
-  "ToolComparisonWdl.input_bams": [ "NexPond-412726.chr15.bam" ],
+  "ToolComparisonWdl.input_bams": [ "NexPond-412726.chr15.bam"],
 
   "ToolComparisonWdl.contamination": 0.0,
   "ToolComparisonWdl.interval_padding": 0,
