@@ -14,4 +14,8 @@ As of 2019/03/05 this is UNSUPPORTED and may not have sufficient
 explanations as to their function and rationale.  Please do not
 ask about it... (yet)...
 
+============================================================
+
+The UML diagram was produced by StarUML v3.0.2 on a MacBook Pro.
+(http://staruml.io/download/releases/StarUML-3.0.2.dmg)
 
