@@ -121,28 +121,28 @@ workflow ToolComparisonWdl {
         # the "truth"/baseline data:
         # -------------------------------------------------
 
-#        call analysis_1_wdl.GenotypeConcordanceTask {
-#            input:
-#                call_vcf                  = HaplotypeCallerTask.output_vcf,
-#                call_index                = HaplotypeCallerTask.output_vcf_index,
-#                call_sample               = "NA12878",
-#
-#                truth_vcf                 = truthVcf,
-#                truth_index               = truthIndex,
-#                truth_sample              = "NA12878",
-#
-#                interval_list             = interval_list_final,
-#
-#                output_base_name          = outputName,
-#
-#                gatk_docker               = analysis_docker_final,
-#                #gatk_override             = gatk4_jar_override,
-#                mem                       = mem_gb,
-#                preemptible_attempts      = preemptible_attempts,
-#                disk_space_gb             = disk_space_gb,
-#                cpu                       = cpu,
-#                boot_disk_size_gb         = boot_disk_size_gb
-#        }
+        call analysis_1_wdl.GenotypeConcordanceTask {
+            input:
+                call_vcf                  = HaplotypeCallerTask.output_vcf,
+                call_index                = HaplotypeCallerTask.output_vcf_index,
+                call_sample               = "NA12878",
+
+                truth_vcf                 = truthVcf,
+                truth_index               = truthIndex,
+                truth_sample              = "NA12878",
+
+                interval_list             = interval_list_final,
+
+                output_base_name          = outputName,
+
+                gatk_docker               = analysis_docker_final,
+                #gatk_override             = gatk4_jar_override,
+                mem                       = mem_gb,
+                preemptible_attempts      = preemptible_attempts,
+                disk_space_gb             = disk_space_gb,
+                cpu                       = cpu,
+                boot_disk_size_gb         = boot_disk_size_gb
+        }
 
         call analysis_2_wdl.Concordance {
             input:
