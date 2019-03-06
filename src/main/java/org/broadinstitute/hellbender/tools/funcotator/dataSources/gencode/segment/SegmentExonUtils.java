@@ -1,7 +1,6 @@
 package org.broadinstitute.hellbender.tools.funcotator.dataSources.gencode.segment;
 
 import com.google.common.annotations.VisibleForTesting;
-import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.util.Locatable;
 import htsjdk.tribble.annotation.Strand;
 import org.broadinstitute.hellbender.utils.IntervalUtils;
@@ -17,7 +16,7 @@ public class SegmentExonUtils {
     // This should always be -1
     private final static int NO_EXON_OVERLAP = -1;
 
-    public static SegmentExonOverlaps determineSegmentExonPosition(final GencodeGtfTranscriptFeature transcript, final Locatable segment, final SAMSequenceDictionary dictionary) {
+    public static SegmentExonOverlaps determineSegmentExonPosition(final GencodeGtfTranscriptFeature transcript, final Locatable segment) {
         final List<GencodeGtfExonFeature> exons = transcript.getExons();
         final String NOT_IN_TRANSCRIPT = "";
 

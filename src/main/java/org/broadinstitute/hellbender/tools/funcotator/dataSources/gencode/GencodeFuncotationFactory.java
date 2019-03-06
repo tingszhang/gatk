@@ -22,6 +22,7 @@ import org.broadinstitute.hellbender.exceptions.GATKException;
 import org.broadinstitute.hellbender.exceptions.UserException;
 import org.broadinstitute.hellbender.tools.funcotator.*;
 import org.broadinstitute.hellbender.tools.funcotator.dataSources.TableFuncotation;
+import org.broadinstitute.hellbender.tools.funcotator.dataSources.gencode.segment.SegmentExonUtils;
 import org.broadinstitute.hellbender.tools.funcotator.metadata.FuncotationMetadata;
 import org.broadinstitute.hellbender.tools.funcotator.metadata.VcfFuncotationMetadata;
 import org.broadinstitute.hellbender.utils.BaseUtils;
@@ -408,7 +409,7 @@ public class GencodeFuncotationFactory extends DataSourceFuncotationFactory {
     @Override
     protected List<Funcotation> createDefaultFuncotationsOnVariant( final VariantContext variant, final ReferenceContext referenceContext ) {
         if (isSegmentVariantContext(variant)) {
-            return createSegmentFuncotations(variant, Collections.emptyList(), null, null);
+            return createSegmentFuncotations(variant, Collections.emptyList(), null, null, null, null);
         } else {
             // Simply create IGR
             final List<Funcotation> funcotationList = new ArrayList<>();
@@ -2713,7 +2714,11 @@ public class GencodeFuncotationFactory extends DataSourceFuncotationFactory {
     public LinkedHashSet<String> getSupportedFuncotationFieldsForSegments() {
         // TODO: Many more to add here
         return new LinkedHashSet<>(Arrays.asList(
-                getName() + "_" + getVersion() + "_genes"
+                getName() + "_" + getVersion() + "_genes",
+                getName() + "_" + getVersion() + "_start_gene",
+                getName() + "_" + getVersion() + "_end_gene",
+                getName() + "_" + getVersion() + "_start_exon",
+                getName() + "_" + getVersion() + "_end_exon"
         ));
     }
 
@@ -2723,7 +2728,9 @@ public class GencodeFuncotationFactory extends DataSourceFuncotationFactory {
                 Arrays.asList(
                         new VCFInfoHeaderLine(getName() + "_" + getVersion() + "_genes",1, VCFHeaderLineType.String, "The genes overlapping the segment.  Blank if none."),
                         new VCFInfoHeaderLine(getName() + "_" + getVersion() + "_start_gene",1, VCFHeaderLineType.String, "The genes overlapping the start of the segment.  Blank if none."),
-                        new VCFInfoHeaderLine(getName() + "_" + getVersion() + "_end_gene",1, VCFHeaderLineType.String, "The genes overlapping the end of the segment.  Blank if none.")
+                        new VCFInfoHeaderLine(getName() + "_" + getVersion() + "_end_gene",1, VCFHeaderLineType.String, "The genes overlapping the end of the segment.  Blank if none."),
+                        new VCFInfoHeaderLine(getName() + "_" + getVersion() + "_start_exon",1, VCFHeaderLineType.String, "The genes overlapping the start of the segment.  Blank if none."),
+                        new VCFInfoHeaderLine(getName() + "_" + getVersion() + "_end_exon",1, VCFHeaderLineType.String, "The genes overlapping the end of the segment.  Blank if none.")
                 )
         );
     }
@@ -2780,17 +2787,14 @@ public class GencodeFuncotationFactory extends DataSourceFuncotationFactory {
         final GencodeFuncotation endFuncotation = endGencodeFuncotations.size() == 0 ? null: endGencodeFuncotations.get(0);
 
         // Remember that the start funcotation could be null (or otherwise not have a transcript)
-        if (startFuncotation != null) {
-            final GencodeGtfTranscriptFeature chosenTranscriptStart = findFirstTranscriptMatch(transcriptsOverlappingStart,
-                    startGencodeFuncotations.get(0).getAnnotationTranscript());
-            final GencodeGtfFeature containingSubfeatureStart = getContainingGtfSubfeature(segStartAsVariant, chosenTranscriptStart);
-        }
-//        } else {
-//            // TODO: What here?
-//        }
+        final GencodeGtfTranscriptFeature chosenTranscriptStart = startFuncotation != null ?
+                findFirstTranscriptMatch(transcriptsOverlappingStart, startGencodeFuncotations.get(0).getAnnotationTranscript()) :
+                null;
+        final GencodeGtfTranscriptFeature chosenTranscriptEnd = endFuncotation != null ?
+                findFirstTranscriptMatch(transcriptsOverlappingEnd, endGencodeFuncotations.get(0).getAnnotationTranscript()) :
+                null;
 
-
-        return createSegmentFuncotations(segmentVariantContext, genes, startFuncotation, endFuncotation);
+        return createSegmentFuncotations(segmentVariantContext, genes, startFuncotation, endFuncotation, chosenTranscriptStart, chosenTranscriptEnd);
     }
 
     private static List<GencodeGtfTranscriptFeature> subsetToOverlappingTranscripts(final VariantContext variant, final List<GencodeGtfTranscriptFeature> allBasicOverlappingTranscripts) {
@@ -2808,22 +2812,25 @@ public class GencodeFuncotationFactory extends DataSourceFuncotationFactory {
                 .make();
     }
 
-    private List<Funcotation> createSegmentFuncotations(final VariantContext segmentVariantContext, final List<String> genes, final GencodeFuncotation startFuncotation, final GencodeFuncotation endFuncotation) {
+    private List<Funcotation> createSegmentFuncotations(final VariantContext segmentVariantContext, final List<String> genes, final GencodeFuncotation startFuncotation, final GencodeFuncotation endFuncotation,
+                                                        final GencodeGtfTranscriptFeature chosenTranscriptStart,  final GencodeGtfTranscriptFeature chosenTranscriptEnd) {
         // TODO: Fix magic constants.
         final String genesValue = StringUtils.join(genes, ",");
         final String startGeneValue = startFuncotation == null ? "" : startFuncotation.getHugoSymbol();
         final String endGeneValue = endFuncotation == null ? "" : endFuncotation.getHugoSymbol();
-
+        final String startExonValue = chosenTranscriptStart == null ? "" : SegmentExonUtils.determineSegmentExonPosition(chosenTranscriptStart, segmentVariantContext).getSegmentStartExonOverlap();
+        final String endExonValue = chosenTranscriptEnd == null ? "" : SegmentExonUtils.determineSegmentExonPosition(chosenTranscriptEnd, segmentVariantContext).getSegmentEndExonOverlap();
         return segmentVariantContext.getAlternateAlleles().stream().map(a -> TableFuncotation.create(Arrays.asList(
                 getName() + "_" + getVersion() + "_genes",
                 getName() + "_" + getVersion() + "_start_gene",
-                getName() + "_" + getVersion() + "_end_gene"
-//                getName() + "_" + getVersion() + "_start_exon"
+                getName() + "_" + getVersion() + "_end_gene",
+                getName() + "_" + getVersion() + "_start_exon",
+                getName() + "_" + getVersion() + "_end_exon"
 
                 ), Arrays.asList(
                 genesValue,
                 startGeneValue,
-                endGeneValue
+                endGeneValue, startExonValue, endExonValue
                 ),
             a, getName(), createSegmentFuncotationMetadata())).collect(Collectors.toList());
     }
