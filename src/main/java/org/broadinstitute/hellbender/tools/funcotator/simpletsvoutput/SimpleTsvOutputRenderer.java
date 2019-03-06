@@ -56,7 +56,8 @@ public class SimpleTsvOutputRenderer extends OutputRenderer {
                                    final LinkedHashMap<String, String> unaccountedForDefaultAnnotations,
                                    final LinkedHashMap<String, String> unaccountedForOverrideAnnotations,
                                    final String referenceVersion, final Set<String> excludedOutputFields,
-                                   final Path configPath) {
+                                   final Path configPath, final String toolVersion) {
+        super(toolVersion);
         this.excludedOutputFields = excludedOutputFields;
         this.outputFilePath = outputFilePath;
         isWriterInitialized = false;

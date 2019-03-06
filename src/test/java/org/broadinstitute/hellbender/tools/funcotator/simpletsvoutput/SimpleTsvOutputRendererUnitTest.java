@@ -44,7 +44,7 @@ public class SimpleTsvOutputRendererUnitTest extends GATKBaseTest {
         final SimpleTsvOutputRenderer renderer = new SimpleTsvOutputRenderer(outputFile.toPath(),
                 new LinkedHashMap<>(),
                 new LinkedHashMap<>(),
-                "hg19", new HashSet<>(), Paths.get(SEG_CONFIG_RESOURCE));
+                "hg19", new HashSet<>(), Paths.get(SEG_CONFIG_RESOURCE), "TEST");
 
         final FuncotationMap funcotationMap = FuncotationMap.createNoTranscriptInfo(
                 Arrays.asList(TableFuncotation.create(Collections.singletonList("Gencode_19_genes"), Collections.singletonList("GENE1,GENE2"),

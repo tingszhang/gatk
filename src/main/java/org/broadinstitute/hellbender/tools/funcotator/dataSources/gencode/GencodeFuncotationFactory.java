@@ -758,7 +758,7 @@ public class GencodeFuncotationFactory extends DataSourceFuncotationFactory {
                  );
                 logger.warn("Creating default GencodeFuncotation on transcript " + transcript.getTranscriptId() + " for problem variant: " +
                                 variant.getContig() + ":" + variant.getStart() + "-" + variant.getEnd() + "(" + variant.getReference() + " -> " + altAllele + ")");
-                outputFuncotations.add( createDefaultFuncotationsOnProblemVariant( variant, altAllele, gtfFeature, reference, transcript, version, getName() ) );
+                outputFuncotations.add( createDefaultFuncotationsOnProblemVariant( variant, altAllele, reference, transcript, version, getName() ) );
             }
         }
         return outputFuncotations;
@@ -784,12 +784,11 @@ public class GencodeFuncotationFactory extends DataSourceFuncotationFactory {
      */
     private GencodeFuncotation createDefaultFuncotationsOnProblemVariant( final VariantContext variant,
                                                                                final Allele altAllele,
-                                                                               final GencodeGtfGeneFeature gtfFeature,
                                                                                final ReferenceContext reference,
                                                                                final GencodeGtfTranscriptFeature transcript,
                                                                                final String version,
                                                                                final String dataSourceName) {
-        return createDefaultFuncotationsOnProblemVariant(variant, altAllele, gtfFeature, reference, transcript,
+        return createDefaultFuncotationsOnProblemVariant(variant, altAllele, reference, transcript,
                 version, dataSourceName, this.ncbiBuildVersion);
     }
 
@@ -805,7 +804,6 @@ public class GencodeFuncotationFactory extends DataSourceFuncotationFactory {
      * As noted in the above issues, other functional annotation tools also get these kinds of cases wrong.
      * @param variant The {@link VariantContext} to annotate.
      * @param altAllele The alternate {@link Allele} to annotate.
-     * @param gtfFeature The {@link GencodeGtfGeneFeature} overlapping the given {@code variant}.
      * @param reference The {@link ReferenceContext} for the given {@code variant}.
      * @param transcript The {@link GencodeGtfTranscriptFeature} which is being used to annotate the given {@code variant}.
      * @param version A {@link String} representing the version of the {@link GencodeFuncotationFactory} being used to annotate the given {@code variant}.
@@ -2054,9 +2052,8 @@ public class GencodeFuncotationFactory extends DataSourceFuncotationFactory {
      */
      private GencodeFuncotationBuilder createGencodeFuncotationBuilderWithTrivialFieldsPopulated(final VariantContext variant,
                                                                                                 final Allele altAllele,
-                                                                                                final GencodeGtfGeneFeature gtfFeature,
                                                                                                 final GencodeGtfTranscriptFeature transcript) {
-        return createGencodeFuncotationBuilderWithTrivialFieldsPopulated(variant, altAllele, gtfFeature, transcript, this.ncbiBuildVersion);
+        return createGencodeFuncotationBuilderWithTrivialFieldsPopulated(variant, altAllele, transcript, this.ncbiBuildVersion);
      }
 
     /**
@@ -2064,7 +2061,6 @@ public class GencodeFuncotationFactory extends DataSourceFuncotationFactory {
      *
      * @param variant The {@link VariantContext} for the current variant.
      * @param altAllele The alternate {@link Allele} we are currently annotating.
-     * @param gtfFeature The current {@link GencodeGtfGeneFeature} read from the input feature file.
      * @param transcript The current {@link GencodeGtfTranscriptFeature} containing our {@code alternateAllele}.
      * @param ncbiBuildVersion NCBI build version
      * @return A trivially populated {@link GencodeFuncotationBuilder} object.

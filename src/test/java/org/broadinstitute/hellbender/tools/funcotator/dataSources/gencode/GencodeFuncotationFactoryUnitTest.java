@@ -1932,7 +1932,7 @@ public class GencodeFuncotationFactoryUnitTest extends GATKBaseTest {
                 GencodeFuncotationFactory.DEFAULT_NAME,
                 TranscriptSelectionMode.CANONICAL,
                 Collections.emptySet(),
-                new LinkedHashMap<>(), createFeatureInputForCntn4Ds(GencodeFuncotationFactory.DEFAULT_NAME))) {
+                new LinkedHashMap<>(), createFeatureInputForCntn4Ds(GencodeFuncotationFactory.DEFAULT_NAME), "TEST")) {
             final ReferenceContext referenceContext = new ReferenceContext(refDataSourceHg19Ch3, new SimpleInterval(vc) );
 
             final FeatureContext featureContext = FuncotatorTestUtils.createFeatureContext(

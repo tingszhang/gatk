@@ -521,7 +521,7 @@ public class DataProviderForExampleGencodeGtfGene {
         );
         final GencodeGtfCDSFeature cds1 = (GencodeGtfCDSFeature) GencodeGtfFeature.create(tmpCdsMinusStop);
 
-        final int stopCodonStart = codingDirection == Strand.POSITIVE ? cds1.getGenomicEndLocation() + 1 : ; //TODO: Not zero
+        final int stopCodonStart = codingDirection == Strand.POSITIVE ? cds1.getGenomicEndLocation() + 1 : 0; //TODO: Not zero
         final int stopCodonEnd = codingDirection == Strand.POSITIVE ? cds1.getGenomicEndLocation() + CODON_LENGTH : 0; //TODO: Not zero
 
         final GencodeGtfFeatureBaseData tmpStopCodon = new GencodeGtfFeatureBaseData(featureOrderNum.getAndIncrement(), contig, GencodeGtfFeature.AnnotationSource.ENSEMBL, GencodeGtfFeature.FeatureType.STOP_CODON,

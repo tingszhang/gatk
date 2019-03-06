@@ -271,7 +271,8 @@ public final class FuncotatorEngine implements AutoCloseable {
                         unaccountedForDefaultAnnotations,
                         unaccountedForOverrideAnnotations,
                         funcotatorArgs.referenceVersion, funcotatorArgs.excludedFields,
-                        Paths.get("org/broadinstitute/hellbender/tools/funcotator/simple_funcotator_seg_file.config"));
+                        Paths.get("org/broadinstitute/hellbender/tools/funcotator/simple_funcotator_seg_file.config"),
+                        gatkToolInstance.getVersion());
                 break;
             default:
                 throw new GATKException("Unsupported output format type specified: " + funcotatorArgs.outputFormatType.toString());
