@@ -97,6 +97,10 @@ public class FuncotateSegments extends FeatureWalker<AnnotatedInterval> {
                 .filter(ff -> ff.isSupportingSegmentFuncotation())
                 .collect(Collectors.toList());
 
+        // Log the datasources
+        logger.info("The following datasources support funcotation on segments: ");
+        dataSourceFuncotationFactories.forEach(ff -> logger.info(" " + ff.getInfoString()));
+
         // Initialize a funcotator engine to handle segments.
         funcotatorEngine = new FuncotatorEngine(funcotatorArgs,
                 getBestAvailableSequenceDictionary(),

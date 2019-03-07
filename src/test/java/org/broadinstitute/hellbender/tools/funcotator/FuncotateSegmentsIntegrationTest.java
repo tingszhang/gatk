@@ -47,6 +47,10 @@ public class FuncotateSegmentsIntegrationTest extends CommandLineProgramTest {
         Assert.assertEquals(collection.getRecords().size(), 3);
         Assert.assertTrue(collection.getRecords().stream().allMatch(r -> r.hasAnnotation("genes")));
         Assert.assertTrue(collection.getRecords().stream().allMatch(r -> r.getAnnotationValue("genes").equals("")));
+        Assert.assertTrue(collection.getRecords().stream().allMatch(r -> r.getAnnotationValue("start_gene").equals("")));
+        Assert.assertTrue(collection.getRecords().stream().allMatch(r -> r.getAnnotationValue("end_gene").equals("")));
+        Assert.assertTrue(collection.getRecords().stream().allMatch(r -> r.getAnnotationValue("start_exon").equals("")));
+        Assert.assertTrue(collection.getRecords().stream().allMatch(r -> r.getAnnotationValue("end_exon").equals("")));
     }
 
     /**

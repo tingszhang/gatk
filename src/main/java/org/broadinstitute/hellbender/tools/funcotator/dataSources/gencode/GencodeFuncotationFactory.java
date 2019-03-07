@@ -2827,6 +2827,7 @@ public class GencodeFuncotationFactory extends DataSourceFuncotationFactory {
                 getName() + "_" + getVersion() + "_start_exon",
                 getName() + "_" + getVersion() + "_end_exon"
 
+                //TODO: Exon values are null in some cases.  Should be ""
                 ), Arrays.asList(
                 genesValue,
                 startGeneValue,
