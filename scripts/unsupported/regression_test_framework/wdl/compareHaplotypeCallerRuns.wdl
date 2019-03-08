@@ -175,9 +175,9 @@ workflow ToolComparisonWdl {
         Array[File] vcf_out                                 = HaplotypeCallerTask.output_vcf
         Array[File] vcf_out_idx                             = HaplotypeCallerTask.output_vcf_index
 
-#        Array[File] genotypeConcordance_summary_metrics     = GenotypeConcordanceTask.summary_metrics
-#        Array[File] genotypeConcordance_detail_metrics      = GenotypeConcordanceTask.detail_metrics
-#        Array[File] genotypeConcordance_contingency_metrics = GenotypeConcordanceTask.contingency_metrics
+        Array[File] genotypeConcordance_summary_metrics     = GenotypeConcordanceTask.summary_metrics
+        Array[File] genotypeConcordance_detail_metrics      = GenotypeConcordanceTask.detail_metrics
+        Array[File] genotypeConcordance_contingency_metrics = GenotypeConcordanceTask.contingency_metrics
 
         Array[File] variantCallerConcordance_fn              = Concordance.fn
         Array[File] variantCallerConcordance_fn_idx          = Concordance.fn_idx
