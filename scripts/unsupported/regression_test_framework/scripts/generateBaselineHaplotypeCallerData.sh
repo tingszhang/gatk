@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+
+GATK4="broadinstitute/gatk:4.0.0.0"
+
+function generateJson() 
+{
+  local gatk_docker=${1}
+
+  echo "{"
+  echo "  \"ToolComparisonWdl.gatk_docker\": \"${1}\","
+  echo "  \"ToolComparisonWdl.analysis_docker\": \"broadinstitute/gatk-nightly:2019-02-26-4.1.0.0-31-g23bd0a2f8-SNAPSHOT\","
+  echo ""
+  echo "  \"ToolComparisonWdl.input_bucket_location\": \"gs://broad-dsp-methods-regression-testing/inputData/\","
+  echo "  \"ToolComparisonWdl.truth_bucket_location\": \"gs://broad-dsp-methods-regression-testing/inputData/\","
+  echo ""
+  echo "  \"ToolComparisonWdl.input_bams\": [ \"NexPond-363907.bam\" ],"
+  echo ""
+  echo "  \"ToolComparisonWdl.contamination\": 0.0,"
+  echo "  \"ToolComparisonWdl.interval_padding\": 0,"
+  echo "  \"ToolComparisonWdl.gvcf_mode\": \"false\","
+  echo ""
+  echo "  \"ToolComparisonWdl.disk_space_gb\": 512,"
+  echo "  \"ToolComparisonWdl.boot_disk_size_gb\": 64,"
+  echo "  \"ToolComparisonWdl.mem_gb\": 32"
+  echo "}  "
+}
+
+
+
+################################################################################
+
+for gatkVersion in \
+  2019-03-07-4.1.0.0-50-g342569ac0-SNAPSHOT  \
+  2019-03-08-4.0.4.0-SNAPSHOT \
+  2019-03-08-4.0.6.0-SNAPSHOT \
+  2019-03-08-4.0.7.0-SNAPSHOT \
+  2019-03-08-4.0.8.0-SNAPSHOT \
+  2019-03-08-4.0.8.1-SNAPSHOT \
+  2019-03-08-4.0.9.0-SNAPSHOT \
+  2019-03-08-4.0.10.1-SNAPSHOT \
+  2019-03-08-4.0.10.0-SNAPSHOT \
+  2019-03-08-4.0.11.0-SNAPSHOT \
+  2019-03-08-4.0.12.0-SNAPSHOT \
+  2019-03-08-4.1.0.0-SNAPSHOT  \
+  ; do
+
+  gatkDockerImage="jonnsmith/gatk_test_builds:${gatkVersion}"
+
+  generateJson ${gatkDockerImage}
+
+  break
+done
+
+
