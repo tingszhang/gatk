@@ -47,11 +47,6 @@ for gatkVersion in \
   2019-03-08-4.1.0.0-SNAPSHOT  \
   ; do
 
-#for gatkVersion in \
-#  2019-03-08-4.0.8.0-SNAPSHOT \
-#  ; do
-
-
   gatkDockerImage="jonnsmith/gatk_test_builds:${gatkVersion}"
 
   echo "Creating json for ${gatkVersion}"
