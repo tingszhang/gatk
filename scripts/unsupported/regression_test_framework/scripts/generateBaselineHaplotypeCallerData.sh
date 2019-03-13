@@ -2,6 +2,8 @@
 
 GATK4="broadinstitute/gatk:4.0.0.0"
 
+
+
 function generateJson() 
 {
   local gatk_docker=${1}
@@ -13,7 +15,7 @@ function generateJson()
   echo "  \"ToolComparisonWdl.input_bucket_location\": \"gs://broad-dsp-methods-regression-testing/inputData/\","
   echo "  \"ToolComparisonWdl.truth_bucket_location\": \"gs://broad-dsp-methods-regression-testing/inputData/\","
   echo ""
-  echo "  \"ToolComparisonWdl.input_bams\": [ \"NexPond-363907.bam\" ],"
+  echo "  \"ToolComparisonWdl.input_bams\": [ \"NexPond-359781.bam\", \"NexPond-359877.bam\", \"NexPond-360361.bam\", \"NexPond-360457.bam\", \"NexPond-361337.bam\", \"NexPond-361433.bam\", \"NexPond-362428.bam\", \"NexPond-363907.bam\", \"NexPond-445394.bam\" ],"
   echo ""
   echo "  \"ToolComparisonWdl.contamination\": 0.0,"
   echo "  \"ToolComparisonWdl.interval_padding\": 0,"
@@ -29,6 +31,8 @@ function generateJson()
 
 ################################################################################
 
+BADLIST=""
+
 for gatkVersion in \
   2019-03-07-4.1.0.0-50-g342569ac0-SNAPSHOT  \
   2019-03-08-4.0.4.0-SNAPSHOT \
@@ -39,16 +43,43 @@ for gatkVersion in \
   2019-03-08-4.0.9.0-SNAPSHOT \
   2019-03-08-4.0.10.1-SNAPSHOT \
   2019-03-08-4.0.10.0-SNAPSHOT \
-  2019-03-08-4.0.11.0-SNAPSHOT \
   2019-03-08-4.0.12.0-SNAPSHOT \
   2019-03-08-4.1.0.0-SNAPSHOT  \
   ; do
 
+#for gatkVersion in \
+#  2019-03-08-4.0.8.0-SNAPSHOT \
+#  ; do
+
+
   gatkDockerImage="jonnsmith/gatk_test_builds:${gatkVersion}"
 
-  generateJson ${gatkDockerImage}
+  echo "Creating json for ${gatkVersion}"
+  generateJson ${gatkDockerImage} > ${gatkVersion}.json
+  
+  # Submit the job:
+  echo "Submitting job for ${gatkVersion}"
+  ~/Development/cromshell/cromshell submit -w \
+    ~/Development/gatk/scripts/unsupported/regression_test_framework/wdl/compareHaplotypeCallerRuns.wdl \
+    ${gatkVersion}.json \
+    ~/Development/gatk/scripts/unsupported/regression_test_framework/json/options.json \
+    ~/Development/gatk/scripts/unsupported/regression_test_framework/wdl/compareHaplotypeCallerRuns_Subworkflows.zip
 
-  break
+  if [[ $? -ne 0 ]] ; then
+    BADLIST="${BADLIST} ${gatkVersion}"
+  fi
+
+  rm ${gatkVersion}.json
+  sleep 2
+
+  echo ""
+
 done
 
+if [[ ${#BADLIST} -ne 0 ]] ; then
+  echo "YOU MUST RESUBMIT THE FOLLOWING JOBS:"
+  echo "${BADLIST}"
+fi
+
+echo "Done"
 

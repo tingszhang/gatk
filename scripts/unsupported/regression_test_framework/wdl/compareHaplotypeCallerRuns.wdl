@@ -77,9 +77,9 @@ workflow ToolComparisonWdl {
 
         String outputName = if gvcf_mode then input_base_name + ".HC.g.vcf" else input_base_name + ".HC.vcf"
 
-        String truthBaseName = outputName
+        String truthBaseName = input_base_name + ".vcf.gz"
         File truthVcf = truth_bucket_location + truthBaseName
-        File truthIndex = truth_bucket_location + truthBaseName + ".idx"
+        File truthIndex = truth_bucket_location + truthBaseName + ".tbi"
 
         # This is kind of a total hack
         Boolean isUsingIntervals = sub(input_base_name, "Pond.*", "") == "Nex"
@@ -161,12 +161,12 @@ workflow ToolComparisonWdl {
                 preemptible_attempts = preemptible_attempts
         }
 
-        call analysis_3_wdl.CompareTimingTask {
-            input:
-                gatk_docker = analysis_docker_final,
-                truth_timing_file = truthVcf + ".timingInformation.txt",
-                call_timing_file = HaplotypeCallerTask.timing_info
-        }
+#        call analysis_3_wdl.CompareTimingTask {
+#            input:
+#                gatk_docker = analysis_docker_final,
+#                truth_timing_file = truthVcf + ".timingInformation.txt",
+#                call_timing_file = HaplotypeCallerTask.timing_info
+#        }
     }
 
     # ------------------------------------------------
@@ -190,6 +190,6 @@ workflow ToolComparisonWdl {
         Array[File] variantCallerConcordance_summary         = Concordance.summary
         Array[File] variantCallerConcordance_filter_analysis = Concordance.filter_analysis
 
-        Array[File] timingMetrics                            = CompareTimingTask.timing_diff
+#        Array[File] timingMetrics                            = CompareTimingTask.timing_diff
     }
 }
