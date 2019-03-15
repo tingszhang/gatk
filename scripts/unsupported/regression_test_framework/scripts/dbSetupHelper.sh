@@ -127,7 +127,7 @@ function createGenotypeConcordanceJson()
 }
 
 doToolDataCreation=false
-doAnalysisDataCreation=false
+doAnalysisDataCreation=true
 
 if $doToolDataCreation ; then 
 
@@ -440,7 +440,7 @@ if $doAnalysisDataCreation ; then
           # Update metric lead separators:
           leadSepMGCD=','
           leadSepM=','
-        done < <(gsutil cat $outFile | tail -n+8 | grep -v '^[ \t]*$' | tr '\t' ',' | sed -e "s#,#','#g" -e "s#^#'#g" -e "s#\$#'#g")
+        done < <(gsutil cat $outFile | tail -n+8 | grep -v '^[ \t]*$' | tr ',' ';' | tr '\t' ',' | sed -e "s#,#','#g" -e "s#^#'#g" -e "s#\$#'#g" | tr ';' ',' ) 
 
       elif [[ $outFile =~ .*genotype_concordance_summary_metrics ]] ; then
         # Get GC Summary metrics: 
