@@ -118,7 +118,7 @@ function createGenotypeConcordanceJson()
   echo ""
   echo "  \"GenotypeConcordanceTask.interval_list\": \"gs://haplotypecallerspark-evaluation/inputData/whole_exome_illumina_coding_v1.Homo_sapiens_assembly19.targets.interval_list\","
   echo ""
-  echo "  \"GenotypeConcordanceTask.output_base_name\": \"${3}.tbi\","
+  echo "  \"GenotypeConcordanceTask.output_base_name\": \"${3}\","
   echo ""
   echo "  \"GenotypeConcordanceTask.default_disk_space_gb\": 512,"
   echo "  \"GenotypeConcordanceTask.mem_gb\": 32,"
@@ -131,8 +131,9 @@ doAnalysisDataCreation=true
 
 if $doToolDataCreation ; then 
 
-  outputFilesQueryFile=outputFilesQueryFile.mysql.txt
-  testScenarioOutputFilesQueryFile=testScenarioOutputFilesQueryFile.mysql.txt
+  # Setup output files in the order they should be inserted:
+  outputFilesQueryFile=D01_outputFilesQueryFile.mysql.txt
+  testScenarioOutputFilesQueryFile=D02_testScenarioOutputFilesQueryFile.mysql.txt
 
   echo "INSERT INTO DSPRegressionTesting.OutputFiles (fileType, path, timeCreated, md5sum, sourceType) VALUES " > ${outputFilesQueryFile}
   echo "INSERT INTO DSPRegressionTesting.TestScenarioOutputFiles (scenarioRun, outputFile) VALUES " > ${testScenarioOutputFilesQueryFile}
@@ -163,33 +164,7 @@ if $doToolDataCreation ; then
 
       timeStamp=$( echo $outFileInfo | awk '{print $2}' | tr -d 'Z' | tr 'T' ' ')
 
-      FT="UNSTRUCTURED_TEXT"
-      bn=$( basename $outFile )
-      if [[ $bn =~ ^.*.bam$ ]] && [[ $bn =~ ^G.* ]] ; then
-        FT="GENOME_READS"
-      elif [[ $bn =~ ^.*.bam$ ]] ; then
-        FT="EXOME_READS"
-      elif [[ $bn =~ ^.*.bai$ ]] && [[ $bn =~ ^G.* ]] ; then
-        FT="GENOME_READS_INDEX"
-      elif [[ $bn =~ ^.*.bai$ ]] ; then
-        FT="EXOME_READS_INDEX"
-      elif [[ $bn =~ ^.*.vcf.gz$ ]] && [[ $bn =~ ^G.* ]] ; then
-        FT="SOMATIC_VCF"
-      elif [[ $bn =~ ^.*.vcf.gz$ ]] ; then
-        FT="SOMATIC_VCF"
-      elif [[ $bn =~ ^.*.vcf.gz.tbi$ ]] && [[ $bn =~ ^G.* ]] ; then
-        FT="SOMATIC_VCF_INDEX"
-      elif [[ $bn =~ ^.*.vcf.gz.tbi$ ]] ; then
-        FT="SOMATIC_VCF_INDEX"
-      elif [[ $bn =~ ^.*.vcf$ ]] && [[ $bn =~ ^G.* ]] ; then
-        FT="SOMATIC_VCF"
-      elif [[ $bn =~ ^.*.vcf$ ]] ; then
-        FT="SOMATIC_VCF"
-      elif [[ $bn =~ ^.*.vcf.idx$ ]] && [[ $bn =~ ^G.* ]] ; then
-        FT="SOMATIC_VCF_INDEX"
-      elif [[ $bn =~ ^.*.vcf.idx$ ]] ; then
-        FT="SOMATIC_VCF_INDEX"
-      fi
+      FT=$( getFileType $outFile )
 
       md5sum=$( gsutil hash -hm $outFile 2>/dev/null | grep md5 | awk '{print $NF}'| \grep -o '^[0-9A-Za-z]*$' )
 
@@ -222,25 +197,68 @@ if $doAnalysisDataCreation ; then
 
   echo "Creating ANALYSIS file outputs."
 
-  analysisRunsQueryFile=analysisRunsQueryFile.mysql.txt
-  outputFilesAnalysisQueryFile=outputFilesAnalysisQueryFile.mysql.txt
-  analysisOutputFilesQueryFile=analysisOutputFilesQueryFile.mysql.txt
+  # Setup output files in the order they should be inserted:
+  analysisRunsQueryFile=A01_analysisRunsQueryFile.mysql.txt
+  outputFilesAnalysisQueryFile=A02_outputFilesAnalysisQueryFile.mysql.txt
+  analysisOutputFilesQueryFile=A03_analysisOutputFilesQueryFile.mysql.txt
+   
+  metricsConcordanceFAQueryFile=A04_metricsConcordanceFAQueryFile.mysql.txt
+  metricsConcordanceSummaryQueryFile=A05_metricsConcordanceSummaryQueryFile.mysql.txt
+
+  metricsGCContingencyQueryFile=A06_metricsGCContingencyQueryFile.mysql.txt
+  metricsGCDetailQueryFile=A07_metricsGCDetailQueryFile.mysql.txt
+  metricsGCSummaryQueryFile=A08_metricsGCSummaryQueryFile.mysql.txt
+
+  metricsTimingQueryFile=A09_metricsTiming.mysql.txt
+  
+  metricsQueryFile=A10_metrics.mysql.txt
 
   echo "INSERT INTO DSPRegressionTesting.AnalysisRuns (analysisInfoID, scenarioOutputForComparison, configuration) VALUES " > ${analysisRunsQueryFile}
   echo "INSERT INTO DSPRegressionTesting.OutputFiles (fileType, path, timeCreated, md5sum, sourceType) VALUES " > ${outputFilesAnalysisQueryFile}
   echo "INSERT INTO DSPRegressionTesting.AnalysisOutputFiles (analysis, outputFile) VALUES " > ${analysisOutputFilesQueryFile}
+ 
+  echo "INSERT INTO DSPRegressionTesting.Metric_Concordance_FilterAnalysis(filter, tn, fn, uniqueTn, uniqueFn) VALUES " > ${metricsConcordanceFAQueryFile}
+  echo "INSERT INTO DSPRegressionTesting.Metric_Concordance_Summary(type, truePositive, falsePositive, falseNegative, sensitivity, precision) VALUES " > ${metricsConcordanceSummaryQueryFile}
+
+  echo "INSERT INTO DSPRegressionTesting.Metric_GenotypeConcordance_ContingencyMetrics(variantType, truthSample, callSample, tpCount, tnCount, fpCount, fnCount, emptyCount) VALUES " > ${metricsGCContingencyQueryFile}
+  echo "INSERT INTO DSPRegressionTesting.Metric_GenotypeConcordance_DetailMetrics(variantType, truthSample, callSample, truthState, callState, count, contingencyValues) VALUES " > ${metricsGCDetailQueryFile}
+  echo "INSERT INTO DSPRegressionTesting.Metric_GenotypeConcordance_SummaryMetrics(variantType, truthSample, callSample, hetSensitivity, hetPPV, hetSpecificity, homvarSensitivity, varSensitivity, varPPV, varSpecificity, genotypeConcordance, nonRefGenotypeConcordance) VALUES " > ${metricsGCSummaryQueryFile}
+
+  echo "INSERT INTO DSPRegressionTesting.Metric_Timing(startTime, endTime, elapsedTime) VALUES " > ${metricsTimingQueryFile}
+
+  echo "INSERT INTO DSPRegressionTesting.Metrics(metricTableName, concreteMetricID, sourceAnalysis) VALUES " > ${metricsQueryFile}
 
   outputFileId=199
   isFirstFile=true
   isFirstAnalysisFile=true
   analysisRunID=0
+  
+  metricCFAID=1
+  metricCSID=1
+
+  metricGCCID=1
+  metricGCDID=1
+  metricGCSID=1
+
+  metricTID=1
+
+  metricID=1
+
+  leadSepMCFA=''
+  leadSepMCS=''
+  leadSepMGCS=''
+  leadSepMGCD=''
+  leadSepMGCC=''
+  leadSepMT=''
+  leadSepM=''
+
   for r in 84edd0ed-f084-47bb-af11-d8b47b9f1865 683dad15-3dea-4f35-8826-6d31f0e0c7bc 334ef0b9-ce97-49b3-8728-b6400396cde7 be5c2094-9ed2-4898-903d-cf519128ca48 5e7bc348-4745-4e6b-8231-bae0f57fc0b0 73a9ee75-6006-40f4-8f1b-681c38a501a8 662f5bfb-038c-491d-925b-896cc1038ff2 301fbc8e-2be1-41bd-847f-0dc4aff9f9af 001d8293-6c8c-41b9-8f07-274e49039d9b 1b557c70-a9e8-40f7-a4b2-d33c792c0255 88aba234-c27b-4bad-842e-9662704d64ca ; do
 
     echo "Processing run: ${r}"
 
     #################### 
     
-    tmpFile=$(mktemp)
+    tmpFile=mainFileList.txt
     echo -n "  Getting outputs..."
     ~/Development/cromshell/cromshell list-outputs $r 2>/dev/null | grep -v 'call-HaplotypeCallerTask/.*vcf[\.idx]*$' | xargs gsutil ls -l | grep -v '^[ \t]*$'  | grep -v '^TOTAL' > $tmpFile
     echo 'DONE!'
@@ -250,22 +268,117 @@ if $doAnalysisDataCreation ; then
     grep 'HaplotypeCallerTask' $tmpFile | grep HaplotypeCallerTask | sed 's#.*shard-#shard-#g' | sed 's#\(.*NexPond-[0-9]*\).*#\1#g' | tr '/' '\t' > ${shardInputMapFile}
     echo 'DONE!'
 
-    echo -n "  Sorting outputs into Concordance, GenotypeConcordance, and Timing sets"
-    concordanceFile=$(mktemp)
-    genotypeConcordanceFile=$(mktemp)
-    timingFile=$(mktemp)
+    #################### 
+
+    echo -n "  Sorting outputs into Concordance, GenotypeConcordance, and Timing sets... "
+    concordanceFile=concordanceFileList.txt
+    genotypeConcordanceFile=genotypeConcordanceFileList.txt
+    timingFile=timingFileList.txt
     grep 'call-Concordance' $tmpFile > $concordanceFile
     grep 'call-GenotypeConcordance' $tmpFile > $genotypeConcordanceFile
     grep 'call-HaplotypeCallerTask' $tmpFile > $timingFile 
     echo 'DONE!'
 
+    #################### 
+
     echo "  Handling Concordance runs...  "
     lastShardIdx=999
     while read outFileInfo ; do
-      echo "  Processing output file ${outputFileId}"
       
       outFile=$( echo $outFileInfo | awk '{print $3}' ) 
       shardIdx=$( echo $outFile | grep -o shard-[0-9]* | sed 's#shard-##g' )
+      
+      echo "    Processing output file ${outputFileId} - $outFile"
+
+      if [[ "${lastShardIdx}" != "${shardIdx}" ]] ; then
+        let analysisRunID=$analysisRunID+1
+        lastShardIdx=${shardIdx}
+      fi
+
+      timeStamp=$( echo $outFileInfo | awk '{print $2}' | tr -d 'Z' | tr 'T' ' ')
+      truthFileBaseName=$(grep "shard-${shardIdx}" $shardInputMapFile | awk '{print $NF}' )
+      inputFile="gs://broad-dsde-methods/cromwell-execution-36/ToolComparisonWdl/${r}/call-HaplotypeCallerTask/shard-${shardIdx}/${truthFileBaseName}.HC.vcf"
+      truthFile="gs://broad-dsp-methods-regression-testing/inputData/${truthFileBaseName}.vcf.gz"
+
+      originalOutFileID=$( getOutputFileID $truthFileBaseName $r )
+
+      FT=$( getFileType $outFile )
+      md5sum=$( gsutil hash -hm $outFile 2>/dev/null | grep md5 | awk '{print $NF}'| \grep -o '^[0-9A-Za-z]*$' )
+      
+      if ! $isFirstFile ; then
+        echo -n ',' >> ${analysisOutputFilesQueryFile}
+        echo -n ',' >> ${outputFilesAnalysisQueryFile}
+      fi
+
+      grep -q "(1, NULL, '$(createConcordanceJson $inputFile $truthFile | jq -c .)')" $analysisRunsQueryFile
+      rv=$?
+      if [ $rv -ne 0 ] ; then
+        if ! $isFirstFile ; then 
+          echo ",(1, NULL, '$(createConcordanceJson $inputFile $truthFile | jq -c .)')" >> $analysisRunsQueryFile 
+        else
+          echo "(1, NULL, '$(createConcordanceJson $inputFile $truthFile | jq -c .)')" >> $analysisRunsQueryFile 
+        fi
+      fi 
+
+      echo "('$FT', '$outFile', '$timeStamp', '$md5sum', 'ANALYSIS')" >> ${outputFilesAnalysisQueryFile}
+      echo "($analysisRunID, $outputFileId)" >> $analysisOutputFilesQueryFile
+      
+      grep -q "$analysisRunID, $originalOutFileID" $analysisOutputFilesQueryFile
+      [ $? -ne 0 ] && echo ",($analysisRunID, $originalOutFileID)" >> $analysisOutputFilesQueryFile
+
+      let outputFileId=${outputFileId}+1
+
+      # Handle metrics:
+      if [[ $outFile =~ .*filter-analysis.txt ]] ; then
+        # Get filter analysis metric:
+        q=$( gsutil cat $outFile | tail -n+2 | sed -e 's#^\([0-9a-zA-Z]*\)\([ \t]*.*\)#"\1"\2#g' | tr '\t' ',' )
+        echo "${leadSepMCFA}($q)" >> $metricsConcordanceFAQueryFile 
+
+        # Add to primary metrics table:
+        echo "${leadSepM}('Metric_Concordance_FilterAnalysis', $metricCFAID, $analysisRunID)" >> $metricsQueryFile
+
+        # Update metric counters:
+        let metricCFAID=$metricCFAID+1
+        let metricID=$metricID+1
+
+        # Update metric lead separators:
+        leadSepMCFA=','
+        leadSepM=','
+
+      elif [[ $outFile =~ .*/summary.txt ]] ; then
+        while read line ; do 
+
+          # get summary metric:
+          q=$( echo $line | sed 's#^\([a-zA-Z0-9]*\)\([ \t]*.*\)#"\1"\2#g' | tr ' ' ',' )
+          echo "${leadSepMCS}($q)" >> $metricsConcordanceSummaryQueryFile
+
+          # Add to primary metrics table:
+          echo "${leadSepM}('Metric_Concordance_Summary', $metricCSID, $analysisRunID)" >> $metricsQueryFile
+
+          # Update metrics counters:
+          let metricCSID=$metricCSID+1
+          let metricID=$metricID+1
+
+          # Update metric lead separators:
+          leadSepMCS=','
+          leadSepM=','
+
+        done < <(gsutil cat $outFile | tail -n+2)
+      fi
+
+      isFirstFile=false
+    done < $concordanceFile
+
+    #################### 
+
+    echo "  Handling GenotypeConcordance runs...  "
+    lastShardIdx=999
+    while read outFileInfo ; do
+      
+      outFile=$( echo $outFileInfo | awk '{print $3}' ) 
+      shardIdx=$( echo $outFile | grep -o shard-[0-9]* | sed 's#shard-##g' )
+
+      echo "    Processing output file ${outputFileId} - $outFile"
 
       if [[ "${lastShardIdx}" != "${shardIdx}" ]] ; then
         let analysisRunID=$analysisRunID+1
@@ -280,72 +393,127 @@ if $doAnalysisDataCreation ; then
       FT=$( getFileType $outFile )
       md5sum=$( gsutil hash -hm $outFile 2>/dev/null | grep md5 | awk '{print $NF}'| \grep -o '^[0-9A-Za-z]*$' )
       
-      if ! $isFirstFile ; then
-        echo -n ',' >> ${analysisRunsQueryFile}
-        echo -n ',' >> ${analysisOutputFilesQueryFile}
-        echo -n ',' >> ${outputFilesAnalysisQueryFile}
-      fi
-
-      echo "(1, NULL, '$(createConcordanceJson $inputFile $truthFile | jq -c .)')" >> $analysisRunsQueryFile 
+      grep -q "(2, NULL, '$(createGenotypeConcordanceJson $inputFile $truthFile $truthFileBaseName | jq -c .)')"  $analysisRunsQueryFile
+      [ $? -ne 0 ] && echo ",(2, NULL, '$(createGenotypeConcordanceJson $inputFile $truthFile $truthFileBaseName | jq -c .)')" >> $analysisRunsQueryFile 
 
       grep -q "$analysisRunID, $originalOutFileID" $analysisOutputFilesQueryFile
-      [ $? -ne 0 ] && echo "($analysisRunID, $originalOutFileID)" >> $analysisOutputFilesQueryFile
+      [ $? -ne 0 ] && echo ",($analysisRunID, $originalOutFileID)" >> $analysisOutputFilesQueryFile
       
-      echo "('$FT', '$outFile', '$timeStamp', '$md5sum', 'ANALYSIS')" >> ${outputFilesAnalysisQueryFile}
-      echo "($analysisRunID, $outputFileId)" >> $analysisOutputFilesQueryFile
-
-      let outputFileId=${outputFileId}+1
-      isFirstFile=false
-    done < $concordanceFile
-
-    exit
-
-    #################### 
-    echo "Handling Concordance files..."
-    while read outFileInfo; do 
-      echo "  Processing output file ${outputFileId}"
-      outFile=$( echo $outFileInfo | awk '{print $3}' ) 
-      timeStamp=$( echo $outFileInfo | awk '{print $2}' | tr -d 'Z' | tr 'T' ' ')
-      FT=$( getFileType $outFile )
-      md5sum=$( gsutil hash -hm $outFile 2>/dev/null | grep md5 | awk '{print $NF}'| \grep -o '^[0-9A-Za-z]*$' )
-      if ! $isFirstFile ; then
-        echo -n ',' >> ${outputFilesAnalysisQueryFile}
-        echo -n ',' >> ${analysisOutputFilesQueryFile}
-      fi
-      echo "('$FT', '$outFile', '$timeStamp', '$md5sum', 'ANALYSIS')" >> ${outputFilesAnalysisQueryFile}
-      echo "(NULL, ${outputFileId})" >> ${analysisOutputFilesQueryFile}
-      let outputFileId=${outputFileId}+1
-      isFirstFile=false
-    done < $concordanceFile 
-
-    echo "Handling GenotypeConcordance files..."
-    while read outFileInfo; do 
-      echo "  Processing output file ${outputFileId}"
-      outFile=$( echo $outFileInfo | awk '{print $3}' ) 
-      timeStamp=$( echo $outFileInfo | awk '{print $2}' | tr -d 'Z' | tr 'T' ' ')
-      FT=$( getFileType $outFile )
-      md5sum=$( gsutil hash -hm $outFile 2>/dev/null | grep md5 | awk '{print $NF}'| \grep -o '^[0-9A-Za-z]*$' )
       echo ",('$FT', '$outFile', '$timeStamp', '$md5sum', 'ANALYSIS')" >> ${outputFilesAnalysisQueryFile}
-
-      echo ",(NULL, ${outputFileId})" >> ${analysisOutputFilesQueryFile}
+      echo ",($analysisRunID, $outputFileId)" >> $analysisOutputFilesQueryFile
 
       let outputFileId=${outputFileId}+1
+
+      # Handle metrics:
+      if [[ $outFile =~ .*genotype_concordance_contingency_metrics ]] ; then
+        # Get GC contingency metrics: 
+        while read line ; do 
+          echo "${leadSepMGCC}($line)" >> $metricsGCContingencyQueryFile
+
+          # Add to primary metrics table:
+          echo "${leadSepM}('Metric_GenotypeConcordance_ContingencyMetrics', $metricGCCID, $analysisRunID)" >> $metricsQueryFile
+
+          # Update metric counters:
+          let metricGCCID=$metricGCCID+1
+          let metricID=$metricID+1
+
+          # Update metric lead separators:
+          leadSepMGCC=','
+          leadSepM=','
+        done < <(gsutil cat $outFile | tail -n+8 $f | grep -v '^[ \t]*$' | tr '\t' ',' | sed 's#^\([a-zA-Z0-9]*\),\([a-zA-Z0-9]*\),\([a-zA-Z0-9]*\),#"\1","\2","\3",#g' )
+
+      elif [[ $outFile =~ .*genotype_concordance_detail_metrics ]] ; then
+        # Get GC contingency metrics: 
+        while read line ; do 
+          echo "${leadSepMGCD}($line)" >> $metricsGCDetailQueryFile
+
+          # Add to primary metrics table:
+          echo "${leadSepM}('Metric_GenotypeConcordance_DetailMetrics', $metricGCDID, $analysisRunID)" >> $metricsQueryFile
+
+          # Update metric counters:
+          let metricGCDID=$metricGCDID+1
+          let metricID=$metricID+1
+
+          # Update metric lead separators:
+          leadSepMGCD=','
+          leadSepM=','
+        done < <(gsutil cat $outFile | tail -n+8 | grep -v '^[ \t]*$' | tr '\t' ',' | sed -e "s#,#','#g" -e "s#^#'#g" -e "s#\$#'#g")
+
+      elif [[ $outFile =~ .*genotype_concordance_summary_metrics ]] ; then
+        # Get GC Summary metrics: 
+        while read line ; do 
+          echo "${leadSepMGCS}($line)" >> $metricsGCSummaryQueryFile
+
+          # Add to primary metrics table:
+          echo "${leadSepM}('Metric_GenotypeConcordance_SummaryMetrics', $metricGCSID, $analysisRunID)" >> $metricsQueryFile
+
+          # Update metric counters:
+          let metricGCSID=$metricGCSID+1
+          let metricID=$metricID+1
+
+          # Update metric lead separators:
+          leadSepMGCS=','
+          leadSepM=','
+        done < <(gsutil cat $outFile | tail -n+8 | grep -v '^[ \t]*$' | tr '\t' ',' | sed -e 's#?#NULL#g' -e "s#,#','#g" -e "s#^#'#g" -e "s#\$#'#g" )
+       fi
+
     done < $genotypeConcordanceFile
 
-    echo "Handling Timing files..."
-    while read outFileInfo; do 
-      echo "  Processing output file ${outputFileId}"
+    #################### 
+
+    echo "  Handling Timing runs...  "
+    lastShardIdx=999
+    while read outFileInfo ; do
+      
       outFile=$( echo $outFileInfo | awk '{print $3}' ) 
+      shardIdx=$( echo $outFile | grep -o shard-[0-9]* | sed 's#shard-##g' )
+      
+      echo "    Processing output file ${outputFileId} - $outFile"
+
       timeStamp=$( echo $outFileInfo | awk '{print $2}' | tr -d 'Z' | tr 'T' ' ')
+      truthFileBaseName=$(grep "shard-${shardIdx}" $shardInputMapFile | awk '{print $NF}' )
+      inputFile="gs://broad-dsde-methods/cromwell-execution-36/ToolComparisonWdl/${r}/call-HaplotypeCallerTask/shard-${shardIdx}/${truthFileBaseName}.HC.vcf"
+      truthFile="gs://broad-dsp-methods-regression-testing/inputData/${truthFileBaseName}.vcf.gz"
+      originalOutFileID=$( getOutputFileID $truthFileBaseName $r )
       FT=$( getFileType $outFile )
       md5sum=$( gsutil hash -hm $outFile 2>/dev/null | grep md5 | awk '{print $NF}'| \grep -o '^[0-9A-Za-z]*$' )
-      echo ",('$FT', '$outFile', '$timeStamp', '$md5sum', 'ANALYSIS')" >> ${outputFilesAnalysisQueryFile}
 
-      echo ",(NULL, ${outputFileId})" >> ${analysisOutputFilesQueryFile}
+      if [[ "${lastShardIdx}" != "${shardIdx}" ]] ; then
+        let analysisRunID=$analysisRunID+1
+        echo ",($analysisRunID, $originalOutFileID)" >> $analysisOutputFilesQueryFile
+        echo ",(3, NULL, NULL)" >> $analysisRunsQueryFile 
+        lastShardIdx=${shardIdx}
+      fi
+
+      echo ",('$FT', '$outFile', '$timeStamp', '$md5sum', 'ANALYSIS')" >> ${outputFilesAnalysisQueryFile}
+      echo ",($analysisRunID, $outputFileId)" >> $analysisOutputFilesQueryFile
 
       let outputFileId=${outputFileId}+1
+
+      # Handle metrics:
+      if [[ $outFile =~ .*.timingInformation.txt ]] ; then
+        # Get timing metric:
+        q=$( gsutil cat $outFile | sed -e 's#.*:[ \t]*##g' | tr '\n' ','|sed 's#.$##g' )
+        echo "${leadSepMT}($q)" >> $metricsTimingQueryFile
+
+        # Add to primary metrics table:
+        echo "${leadSepM}('Metric_Timing', $metricTID, $analysisRunID)" >> $metricsQueryFile
+
+        # Update metric counters:
+        let metricTID=$metricTID+1
+        let metricID=$metricID+1
+
+        # Update metric lead separators:
+        leadSepMT=','
+        leadSepM=','
+      fi
+
+      isFirstFile=false
     done < $timingFile
 
+    #################### 
+
+    exit
   done
 
   echo ";" >> ${outputFilesAnalysisQueryFile}
