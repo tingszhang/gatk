@@ -127,13 +127,15 @@ function createGenotypeConcordanceJson()
 }
 
 doToolDataCreation=false
-doAnalysisDataCreation=true
+doAnalysisDataCreation=false
 
 if $doToolDataCreation ; then 
 
+  echo "Creating DATA file outputs."
+
   # Setup output files in the order they should be inserted:
-  outputFilesQueryFile=D01_outputFilesQueryFile.mysql.txt
-  testScenarioOutputFilesQueryFile=D02_testScenarioOutputFilesQueryFile.mysql.txt
+  outputFilesQueryFile=D01_outputFilesQueryFile.sql
+  testScenarioOutputFilesQueryFile=D02_testScenarioOutputFilesQueryFile.sql
 
   echo "INSERT INTO DSPRegressionTesting.OutputFiles (fileType, path, timeCreated, md5sum, sourceType) VALUES " > ${outputFilesQueryFile}
   echo "INSERT INTO DSPRegressionTesting.TestScenarioOutputFiles (scenarioRun, outputFile) VALUES " > ${testScenarioOutputFilesQueryFile}
@@ -198,27 +200,27 @@ if $doAnalysisDataCreation ; then
   echo "Creating ANALYSIS file outputs."
 
   # Setup output files in the order they should be inserted:
-  analysisRunsQueryFile=A01_analysisRunsQueryFile.mysql.txt
-  outputFilesAnalysisQueryFile=A02_outputFilesAnalysisQueryFile.mysql.txt
-  analysisOutputFilesQueryFile=A03_analysisOutputFilesQueryFile.mysql.txt
+  analysisRunsQueryFile=A01_analysisRunsQueryFile.sql
+  outputFilesAnalysisQueryFile=A02_outputFilesAnalysisQueryFile.sql
+  analysisOutputFilesQueryFile=A03_analysisOutputFilesQueryFile.sql
    
-  metricsConcordanceFAQueryFile=A04_metricsConcordanceFAQueryFile.mysql.txt
-  metricsConcordanceSummaryQueryFile=A05_metricsConcordanceSummaryQueryFile.mysql.txt
+  metricsConcordanceFAQueryFile=A04_metricsConcordanceFAQueryFile.sql
+  metricsConcordanceSummaryQueryFile=A05_metricsConcordanceSummaryQueryFile.sql
 
-  metricsGCContingencyQueryFile=A06_metricsGCContingencyQueryFile.mysql.txt
-  metricsGCDetailQueryFile=A07_metricsGCDetailQueryFile.mysql.txt
-  metricsGCSummaryQueryFile=A08_metricsGCSummaryQueryFile.mysql.txt
+  metricsGCContingencyQueryFile=A06_metricsGCContingencyQueryFile.sql
+  metricsGCDetailQueryFile=A07_metricsGCDetailQueryFile.sql
+  metricsGCSummaryQueryFile=A08_metricsGCSummaryQueryFile.sql
 
-  metricsTimingQueryFile=A09_metricsTiming.mysql.txt
+  metricsTimingQueryFile=A09_metricsTiming.sql
   
-  metricsQueryFile=A10_metrics.mysql.txt
+  metricsQueryFile=A10_metrics.sql
 
   echo "INSERT INTO DSPRegressionTesting.AnalysisRuns (analysisInfoID, scenarioOutputForComparison, configuration) VALUES " > ${analysisRunsQueryFile}
   echo "INSERT INTO DSPRegressionTesting.OutputFiles (fileType, path, timeCreated, md5sum, sourceType) VALUES " > ${outputFilesAnalysisQueryFile}
   echo "INSERT INTO DSPRegressionTesting.AnalysisOutputFiles (analysis, outputFile) VALUES " > ${analysisOutputFilesQueryFile}
  
   echo "INSERT INTO DSPRegressionTesting.Metric_Concordance_FilterAnalysis(filter, tn, fn, uniqueTn, uniqueFn) VALUES " > ${metricsConcordanceFAQueryFile}
-  echo "INSERT INTO DSPRegressionTesting.Metric_Concordance_Summary(type, truePositive, falsePositive, falseNegative, sensitivity, precision) VALUES " > ${metricsConcordanceSummaryQueryFile}
+  echo "INSERT INTO DSPRegressionTesting.Metric_Concordance_Summary(variantType, truePositive, falsePositive, falseNegative, concordanceSensitivity, concordancePrecision) VALUES " > ${metricsConcordanceSummaryQueryFile}
 
   echo "INSERT INTO DSPRegressionTesting.Metric_GenotypeConcordance_ContingencyMetrics(variantType, truthSample, callSample, tpCount, tnCount, fpCount, fnCount, emptyCount) VALUES " > ${metricsGCContingencyQueryFile}
   echo "INSERT INTO DSPRegressionTesting.Metric_GenotypeConcordance_DetailMetrics(variantType, truthSample, callSample, truthState, callState, count, contingencyValues) VALUES " > ${metricsGCDetailQueryFile}
@@ -232,7 +234,16 @@ if $doAnalysisDataCreation ; then
   isFirstFile=true
   isFirstAnalysisFile=true
   analysisRunID=0
-  
+ 
+  leadSepMCFA=''
+  leadSepMCS=''
+  leadSepMGCS=''
+  leadSepMGCD=''
+  leadSepMGCC=''
+  leadSepMT=''
+  leadSepM=''
+
+  # TODO: Set these values based on queries to the DB:
   metricCFAID=1
   metricCSID=1
 
@@ -243,14 +254,6 @@ if $doAnalysisDataCreation ; then
   metricTID=1
 
   metricID=1
-
-  leadSepMCFA=''
-  leadSepMCS=''
-  leadSepMGCS=''
-  leadSepMGCD=''
-  leadSepMGCC=''
-  leadSepMT=''
-  leadSepM=''
 
   for r in 84edd0ed-f084-47bb-af11-d8b47b9f1865 683dad15-3dea-4f35-8826-6d31f0e0c7bc 334ef0b9-ce97-49b3-8728-b6400396cde7 be5c2094-9ed2-4898-903d-cf519128ca48 5e7bc348-4745-4e6b-8231-bae0f57fc0b0 73a9ee75-6006-40f4-8f1b-681c38a501a8 662f5bfb-038c-491d-925b-896cc1038ff2 301fbc8e-2be1-41bd-847f-0dc4aff9f9af 001d8293-6c8c-41b9-8f07-274e49039d9b 1b557c70-a9e8-40f7-a4b2-d33c792c0255 88aba234-c27b-4bad-842e-9662704d64ca ; do
 
@@ -513,14 +516,21 @@ if $doAnalysisDataCreation ; then
 
     #################### 
 
-    exit
   done
 
+  # End our SQL queries:
+  echo ";" >> ${analysisRunsQueryFile}
   echo ";" >> ${outputFilesAnalysisQueryFile}
-  echo ';' >> ${analysisOutputFilesQueryFile}
+  echo ";" >> ${analysisOutputFilesQueryFile}
+  echo ";" >> ${metricsConcordanceFAQueryFile}
+  echo ";" >> ${metricsConcordanceSummaryQueryFile}
+  echo ";" >> ${metricsGCContingencyQueryFile}
+  echo ";" >> ${metricsGCDetailQueryFile}
+  echo ";" >> ${metricsGCSummaryQueryFile}
+  echo ";" >> ${metricsTimingQueryFile}
+  echo ";" >> ${metricsQueryFile}
 
   echo "Done processing ANALYSIS output files."
-
 fi
 
 
