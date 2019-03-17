@@ -22,6 +22,7 @@ import org.broadinstitute.hellbender.utils.fasta.CachingIndexedFastaSequenceFile
 import org.broadinstitute.hellbender.utils.fragments.FragmentCollection;
 import org.broadinstitute.hellbender.utils.fragments.FragmentUtils;
 import org.broadinstitute.hellbender.utils.genotyper.IndexedAlleleList;
+import org.broadinstitute.hellbender.utils.genotyper.MoleculeLikelihoods;
 import org.broadinstitute.hellbender.utils.genotyper.ReadLikelihoods;
 import org.broadinstitute.hellbender.utils.genotyper.SampleList;
 import org.broadinstitute.hellbender.utils.haplotype.Haplotype;
@@ -29,10 +30,7 @@ import org.broadinstitute.hellbender.utils.haplotype.HaplotypeBAMWriter;
 import org.broadinstitute.hellbender.utils.io.IOUtils;
 import org.broadinstitute.hellbender.utils.locusiterator.LocusIteratorByState;
 import org.broadinstitute.hellbender.utils.pileup.ReadPileup;
-import org.broadinstitute.hellbender.utils.read.AlignmentUtils;
-import org.broadinstitute.hellbender.utils.read.GATKRead;
-import org.broadinstitute.hellbender.utils.read.ReadCoordinateComparator;
-import org.broadinstitute.hellbender.utils.read.ReadUtils;
+import org.broadinstitute.hellbender.utils.read.*;
 import org.broadinstitute.hellbender.utils.smithwaterman.SmithWatermanAligner;
 import org.broadinstitute.hellbender.utils.variant.GATKVCFConstants;
 import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils;
@@ -350,6 +348,24 @@ public final class AssemblyBasedCallerUtils {
             final String prevAllelesString = read.hasAttribute(SUPPORTED_ALLELES_TAG) ? read.getAttributeAsString(SUPPORTED_ALLELES_TAG) + ", " : "";
             final String newAllelesString = vc.getContig() + ":" + vc.getStart() + "=" + vc.getAlleleIndex(allele);
             read.setAttribute(SUPPORTED_ALLELES_TAG, prevAllelesString + newAllelesString);
+        }
+    }
+
+    public static void annotateReadLikelihoodsWithSupportedAlleles(final VariantContext vc,
+                                                                   final MoleculeLikelihoods<Fragment, Allele> likelihoodsAllele) {
+        //assign supported alleles to each read
+        final Map<Allele, List<Allele>> alleleSubset = vc.getAlleles().stream().collect(Collectors.toMap(a -> a, Arrays::asList));
+        final MoleculeLikelihoods<Fragment, Allele> subsettedLikelihoods = likelihoodsAllele.marginalize(alleleSubset);
+        final Collection<MoleculeLikelihoods<Fragment, Allele>.BestAllele> bestAlleles = subsettedLikelihoods.bestAllelesBreakingTies().stream()
+                .filter(ba -> ba.isInformative()).collect(Collectors.toList());
+        for (MoleculeLikelihoods<Fragment, Allele>.BestAllele bestAllele : bestAlleles) {
+            final Fragment fragment = bestAllele.read;
+            final Allele allele = bestAllele.allele;
+            for (final GATKRead read : fragment.getReads()) {
+                final String prevAllelesString = read.hasAttribute(SUPPORTED_ALLELES_TAG) ? read.getAttributeAsString(SUPPORTED_ALLELES_TAG) + ", " : "";
+                final String newAllelesString = vc.getContig() + ":" + vc.getStart() + "=" + vc.getAlleleIndex(allele);
+                read.setAttribute(SUPPORTED_ALLELES_TAG, prevAllelesString + newAllelesString);
+            }
         }
     }
 

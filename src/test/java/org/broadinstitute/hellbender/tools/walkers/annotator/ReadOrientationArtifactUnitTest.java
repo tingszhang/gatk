@@ -184,7 +184,7 @@ public class ReadOrientationArtifactUnitTest extends GATKBaseTest {
 
         final ReadLikelihoods<Allele> readLikelihoods = new ReadLikelihoods<>(sampleList, alleleList, readMap);
 
-        final LikelihoodMatrix<Allele> matrix = readLikelihoods.sampleMatrix(0);
+        final LikelihoodMatrix<GATKRead, Allele> matrix = readLikelihoods.sampleMatrix(0);
 
         final double logLikelihoodOfBestAllele = 10.0;
         final int refAlleleIndex = 0;
