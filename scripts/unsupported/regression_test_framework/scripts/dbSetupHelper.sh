@@ -224,7 +224,7 @@ if $doAnalysisDataCreation ; then
 
   echo "INSERT INTO DSPRegressionTesting.Metric_GenotypeConcordance_ContingencyMetrics(variantType, truthSample, callSample, tpCount, tnCount, fpCount, fnCount, emptyCount) VALUES " > ${metricsGCContingencyQueryFile}
   echo "INSERT INTO DSPRegressionTesting.Metric_GenotypeConcordance_DetailMetrics(variantType, truthSample, callSample, truthState, callState, count, contingencyValues) VALUES " > ${metricsGCDetailQueryFile}
-  echo "INSERT INTO DSPRegressionTesting.Metric_GenotypeConcordance_SummaryMetrics(variantType, truthSample, callSample, hetSensitivity, hetPPV, hetSpecificity, homvarSensitivity, varSensitivity, varPPV, varSpecificity, genotypeConcordance, nonRefGenotypeConcordance) VALUES " > ${metricsGCSummaryQueryFile}
+  echo "INSERT INTO DSPRegressionTesting.Metric_GenotypeConcordance_SummaryMetrics(variantType, truthSample, callSample, hetSensitivity, hetPPV, hetSpecificity, homvarSensitivity, homvarPPV, homvarSpecificity, varSensitivity, varPPV, varSpecificity, genotypeConcordance, nonRefGenotypeConcordance) VALUES " > ${metricsGCSummaryQueryFile}
 
   echo "INSERT INTO DSPRegressionTesting.Metric_Timing(startTime, endTime, elapsedTime) VALUES " > ${metricsTimingQueryFile}
 
@@ -457,7 +457,7 @@ if $doAnalysisDataCreation ; then
           # Update metric lead separators:
           leadSepMGCS=','
           leadSepM=','
-        done < <(gsutil cat $outFile | tail -n+8 | grep -v '^[ \t]*$' | tr '\t' ',' | sed -e 's#?#NULL#g' -e "s#,#','#g" -e "s#^#'#g" -e "s#\$#'#g" )
+        done < <(gsutil cat $outFile | tail -n+8 | grep -v '^[ \t]*$' | tr '\t' ',' | sed -e "s#,#','#g" -e "s#^#'#g" -e "s#\$#'#g" -e "s#'\?'#NULL#g" )
        fi
 
     done < $genotypeConcordanceFile
