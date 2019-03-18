@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 
+# Path to local files associated with the runs:
+LOCAL_ROOT=~/.cromshell/cromwell-v36.dsde-methods.broadinstitute.org
+
+# Turn on error exiting:
+set -e
+
+function printVar() 
+{
+  echo "$1 = ${!1}"
+}
+
 function getFileType()
 {
   FT="UNSTRUCTURED_TEXT"
@@ -66,21 +77,21 @@ function getOutputFileID()
   if [[ "${fileBaseName}" == "NexPond-359781" ]] ; then
     let outputFileIndex=$outputFileIndex+0
   elif [[ "${fileBaseName}" == "NexPond-359877" ]] ; then
-    let outputFileIndex=$outputFileIndex+1
-  elif [[ "${fileBaseName}" == "NexPond-360361" ]] ; then
     let outputFileIndex=$outputFileIndex+2
-  elif [[ "${fileBaseName}" == "NexPond-360457" ]] ; then
-    let outputFileIndex=$outputFileIndex+3
-  elif [[ "${fileBaseName}" == "NexPond-361337" ]] ; then
+  elif [[ "${fileBaseName}" == "NexPond-360361" ]] ; then
     let outputFileIndex=$outputFileIndex+4
-  elif [[ "${fileBaseName}" == "NexPond-361433" ]] ; then
-    let outputFileIndex=$outputFileIndex+5
-  elif [[ "${fileBaseName}" == "NexPond-362428" ]] ; then
+  elif [[ "${fileBaseName}" == "NexPond-360457" ]] ; then
     let outputFileIndex=$outputFileIndex+6
-  elif [[ "${fileBaseName}" == "NexPond-363907" ]] ; then
-    let outputFileIndex=$outputFileIndex+7
-  elif [[ "${fileBaseName}" == "NexPond-445394" ]] ; then
+  elif [[ "${fileBaseName}" == "NexPond-361337" ]] ; then
     let outputFileIndex=$outputFileIndex+8
+  elif [[ "${fileBaseName}" == "NexPond-361433" ]] ; then
+    let outputFileIndex=$outputFileIndex+10
+  elif [[ "${fileBaseName}" == "NexPond-362428" ]] ; then
+    let outputFileIndex=$outputFileIndex+12
+  elif [[ "${fileBaseName}" == "NexPond-363907" ]] ; then
+    let outputFileIndex=$outputFileIndex+14
+  elif [[ "${fileBaseName}" == "NexPond-445394" ]] ; then
+    let outputFileIndex=$outputFileIndex+16
   fi
 
   echo $outputFileIndex
@@ -152,7 +163,7 @@ if $doToolDataCreation ; then
 
     tmpFile=$(mktemp)
     echo -n "  Getting outputs...  "
-    ~/Development/cromshell/cromshell list-outputs $r 2>/dev/null | grep 'HaplotypeCaller' | grep -v 'timingInformation' | xargs gsutil ls -l | grep -v '^[ \t]*$'  | grep -v '^TOTAL' > $tmpFile
+    ~/Development/cromshell/cromshell list-outputs $r 2>/dev/null | grep 'HaplotypeCaller' | grep -v 'timingInformation' | xargs sutil ls -l | grep -v '^[ \t]*$'  | grep -v '^TOTAL' > $tmpFile
     echo 'DONE!'
 
     while read outFileInfo ; do
@@ -257,7 +268,7 @@ if $doAnalysisDataCreation ; then
 
   for r in 84edd0ed-f084-47bb-af11-d8b47b9f1865 683dad15-3dea-4f35-8826-6d31f0e0c7bc 334ef0b9-ce97-49b3-8728-b6400396cde7 be5c2094-9ed2-4898-903d-cf519128ca48 5e7bc348-4745-4e6b-8231-bae0f57fc0b0 73a9ee75-6006-40f4-8f1b-681c38a501a8 662f5bfb-038c-491d-925b-896cc1038ff2 301fbc8e-2be1-41bd-847f-0dc4aff9f9af 001d8293-6c8c-41b9-8f07-274e49039d9b 1b557c70-a9e8-40f7-a4b2-d33c792c0255 88aba234-c27b-4bad-842e-9662704d64ca ; do
 
-    echo "Processing run: ${r}"
+    echo "$(date +%Y%m%d-%H%M%S) - Processing run: ${r}"
 
     #################### 
     
@@ -284,11 +295,12 @@ if $doAnalysisDataCreation ; then
 
     #################### 
 
-    echo "  Handling Concordance runs...  "
+    echo "  $(date +%Y%m%d-%H%M%S) - Handling Concordance runs...  "
     lastShardIdx=999
     while read outFileInfo ; do
       
       outFile=$( echo $outFileInfo | awk '{print $3}' ) 
+			localFile="${LOCAL_ROOT}/$(echo "${outFile}" | sed 's#.*ToolComparisonWdl/##g')"
       shardIdx=$( echo $outFile | grep -o shard-[0-9]* | sed 's#shard-##g' )
       
       echo "    Processing output file ${outputFileId} - $outFile"
@@ -306,15 +318,18 @@ if $doAnalysisDataCreation ; then
       originalOutFileID=$( getOutputFileID $truthFileBaseName $r )
 
       FT=$( getFileType $outFile )
-      md5sum=$( gsutil hash -hm $outFile 2>/dev/null | grep md5 | awk '{print $NF}'| \grep -o '^[0-9A-Za-z]*$' )
+      #md5sum=$( gsutil hash -hm $outFile 2>/dev/null | grep md5 | awk '{print $NF}'| \grep -o '^[0-9A-Za-z]*$' )
+      md5sum=$( md5sum-lite ${localFile} | awk '{print $1}' )
       
       if ! $isFirstFile ; then
         echo -n ',' >> ${analysisOutputFilesQueryFile}
         echo -n ',' >> ${outputFilesAnalysisQueryFile}
       fi
 
+			set +e
       grep -q "(1, NULL, '$(createConcordanceJson $inputFile $truthFile | jq -c .)')" $analysisRunsQueryFile
       rv=$?
+			set -e
       if [ $rv -ne 0 ] ; then
         if ! $isFirstFile ; then 
           echo ",(1, NULL, '$(createConcordanceJson $inputFile $truthFile | jq -c .)')" >> $analysisRunsQueryFile 
@@ -326,14 +341,18 @@ if $doAnalysisDataCreation ; then
       echo "('$FT', '$outFile', '$timeStamp', '$md5sum', 'ANALYSIS')" >> ${outputFilesAnalysisQueryFile}
       echo "($analysisRunID, $outputFileId)" >> $analysisOutputFilesQueryFile
       
+			set +e
       grep -q "$analysisRunID, $originalOutFileID" $analysisOutputFilesQueryFile
-      [ $? -ne 0 ] && echo ",($analysisRunID, $originalOutFileID)" >> $analysisOutputFilesQueryFile
+      rv=$?
+			set -e 
+      [ $rv -ne 0 ] && echo ",($analysisRunID, $originalOutFileID)" >> $analysisOutputFilesQueryFile
 
       let outputFileId=${outputFileId}+1
 
       # Handle metrics:
       if [[ $outFile =~ .*filter-analysis.txt ]] ; then
         # Get filter analysis metric:
+        #q=$( gsutil cat $outFile | tail -n+2 | sed -e 's#^\([0-9a-zA-Z]*\)\([ \t]*.*\)#"\1"\2#g' | tr '\t' ',' )
         q=$( gsutil cat $outFile | tail -n+2 | sed -e 's#^\([0-9a-zA-Z]*\)\([ \t]*.*\)#"\1"\2#g' | tr '\t' ',' )
         echo "${leadSepMCFA}($q)" >> $metricsConcordanceFAQueryFile 
 
@@ -366,6 +385,7 @@ if $doAnalysisDataCreation ; then
           leadSepMCS=','
           leadSepM=','
 
+        #done < <(gsutil cat $outFile | tail -n+2)
         done < <(gsutil cat $outFile | tail -n+2)
       fi
 
@@ -374,11 +394,12 @@ if $doAnalysisDataCreation ; then
 
     #################### 
 
-    echo "  Handling GenotypeConcordance runs...  "
+    echo "  $(date +%Y%m%d-%H%M%S) - Handling GenotypeConcordance runs...  "
     lastShardIdx=999
     while read outFileInfo ; do
       
       outFile=$( echo $outFileInfo | awk '{print $3}' ) 
+			localFile="${LOCAL_ROOT}/$(echo "${outFile}" | sed 's#.*ToolComparisonWdl/##g')"
       shardIdx=$( echo $outFile | grep -o shard-[0-9]* | sed 's#shard-##g' )
 
       echo "    Processing output file ${outputFileId} - $outFile"
@@ -394,13 +415,20 @@ if $doAnalysisDataCreation ; then
       truthFile="gs://broad-dsp-methods-regression-testing/inputData/${truthFileBaseName}.vcf.gz"
       originalOutFileID=$( getOutputFileID $truthFileBaseName $r )
       FT=$( getFileType $outFile )
-      md5sum=$( gsutil hash -hm $outFile 2>/dev/null | grep md5 | awk '{print $NF}'| \grep -o '^[0-9A-Za-z]*$' )
+      #md5sum=$( gsutil hash -hm $outFile 2>/dev/null | grep md5 | awk '{print $NF}'| \grep -o '^[0-9A-Za-z]*$' )
+      md5sum=$( md5sum-lite ${localFile} | awk '{print $1}' )
       
+			set +e
       grep -q "(2, NULL, '$(createGenotypeConcordanceJson $inputFile $truthFile $truthFileBaseName | jq -c .)')"  $analysisRunsQueryFile
-      [ $? -ne 0 ] && echo ",(2, NULL, '$(createGenotypeConcordanceJson $inputFile $truthFile $truthFileBaseName | jq -c .)')" >> $analysisRunsQueryFile 
+			rv=$?
+			set -e
+      [ $rv -ne 0 ] && echo ",(2, NULL, '$(createGenotypeConcordanceJson $inputFile $truthFile $truthFileBaseName | jq -c .)')" >> $analysisRunsQueryFile 
 
+			set +e
       grep -q "$analysisRunID, $originalOutFileID" $analysisOutputFilesQueryFile
-      [ $? -ne 0 ] && echo ",($analysisRunID, $originalOutFileID)" >> $analysisOutputFilesQueryFile
+			rv=$?
+			set -e
+      [ $rv -ne 0 ] && echo ",($analysisRunID, $originalOutFileID)" >> $analysisOutputFilesQueryFile
       
       echo ",('$FT', '$outFile', '$timeStamp', '$md5sum', 'ANALYSIS')" >> ${outputFilesAnalysisQueryFile}
       echo ",($analysisRunID, $outputFileId)" >> $analysisOutputFilesQueryFile
@@ -423,7 +451,8 @@ if $doAnalysisDataCreation ; then
           # Update metric lead separators:
           leadSepMGCC=','
           leadSepM=','
-        done < <(gsutil cat $outFile | tail -n+8 $f | grep -v '^[ \t]*$' | tr '\t' ',' | sed 's#^\([a-zA-Z0-9]*\),\([a-zA-Z0-9]*\),\([a-zA-Z0-9]*\),#"\1","\2","\3",#g' )
+        #done < <(gsutil cat $outFile | tail -n+8 | grep -v '^[ \t]*$' | tr '\t' ',' | sed 's#^\([a-zA-Z0-9]*\),\([a-zA-Z0-9]*\),\([a-zA-Z0-9]*\),#"\1","\2","\3",#g' )
+        done < <(cat $localFile | tail -n+8 | grep -v '^[ \t]*$' | tr '\t' ',' | sed 's#^\([a-zA-Z0-9]*\),\([a-zA-Z0-9]*\),\([a-zA-Z0-9]*\),#"\1","\2","\3",#g' )
 
       elif [[ $outFile =~ .*genotype_concordance_detail_metrics ]] ; then
         # Get GC contingency metrics: 
@@ -440,7 +469,8 @@ if $doAnalysisDataCreation ; then
           # Update metric lead separators:
           leadSepMGCD=','
           leadSepM=','
-        done < <(gsutil cat $outFile | tail -n+8 | grep -v '^[ \t]*$' | tr ',' ';' | tr '\t' ',' | sed -e "s#,#','#g" -e "s#^#'#g" -e "s#\$#'#g" | tr ';' ',' ) 
+        #done < <(gsutil cat $outFile | tail -n+8 | grep -v '^[ \t]*$' | tr ',' ';' | tr '\t' ',' | sed -e "s#,#','#g" -e "s#^#'#g" -e "s#\$#'#g" | tr ';' ',' ) 
+        done < <(cat $localFile | tail -n+8 | grep -v '^[ \t]*$' | tr ',' ';' | tr '\t' ',' | sed -e "s#,#','#g" -e "s#^#'#g" -e "s#\$#'#g" | tr ';' ',' ) 
 
       elif [[ $outFile =~ .*genotype_concordance_summary_metrics ]] ; then
         # Get GC Summary metrics: 
@@ -457,18 +487,20 @@ if $doAnalysisDataCreation ; then
           # Update metric lead separators:
           leadSepMGCS=','
           leadSepM=','
-        done < <(gsutil cat $outFile | tail -n+8 | grep -v '^[ \t]*$' | tr '\t' ',' | sed -e "s#,#','#g" -e "s#^#'#g" -e "s#\$#'#g" -e "s#'\?'#NULL#g" )
+        #done < <(gsutil cat $outFile | tail -n+8 | grep -v '^[ \t]*$' | tr '\t' ',' | sed -e "s#,#','#g" -e "s#^#'#g" -e "s#\$#'#g" -e "s#'\?'#NULL#g" )
+        done < <(cat $localFile | tail -n+8 | grep -v '^[ \t]*$' | tr '\t' ',' | sed -e "s#,#','#g" -e "s#^#'#g" -e "s#\$#'#g" -e "s#'\?'#NULL#g" )
        fi
 
     done < $genotypeConcordanceFile
 
     #################### 
 
-    echo "  Handling Timing runs...  "
+    echo "  $(date +%Y%m%d-%H%M%S) - Handling Timing runs...  "
     lastShardIdx=999
     while read outFileInfo ; do
       
       outFile=$( echo $outFileInfo | awk '{print $3}' ) 
+			localFile="${LOCAL_ROOT}/$(echo "${outFile}" | sed 's#.*ToolComparisonWdl/##g')"
       shardIdx=$( echo $outFile | grep -o shard-[0-9]* | sed 's#shard-##g' )
       
       echo "    Processing output file ${outputFileId} - $outFile"
@@ -479,7 +511,8 @@ if $doAnalysisDataCreation ; then
       truthFile="gs://broad-dsp-methods-regression-testing/inputData/${truthFileBaseName}.vcf.gz"
       originalOutFileID=$( getOutputFileID $truthFileBaseName $r )
       FT=$( getFileType $outFile )
-      md5sum=$( gsutil hash -hm $outFile 2>/dev/null | grep md5 | awk '{print $NF}'| \grep -o '^[0-9A-Za-z]*$' )
+      #md5sum=$( gsutil hash -hm $outFile 2>/dev/null | grep md5 | awk '{print $NF}'| \grep -o '^[0-9A-Za-z]*$' )
+      md5sum=$( md5sum-lite ${localFile} | awk '{print $1}' )
 
       if [[ "${lastShardIdx}" != "${shardIdx}" ]] ; then
         let analysisRunID=$analysisRunID+1
@@ -496,7 +529,8 @@ if $doAnalysisDataCreation ; then
       # Handle metrics:
       if [[ $outFile =~ .*.timingInformation.txt ]] ; then
         # Get timing metric:
-        q=$( gsutil cat $outFile | sed -e 's#.*:[ \t]*##g' | tr '\n' ','|sed 's#.$##g' )
+        #q=$( gsutil cat $outFile | sed -e 's#.*:[ \t]*##g' | tr '\n' ','|sed 's#.$##g' )
+        q=$( cat $localFile | sed -e 's#.*:[ \t]*##g' | tr '\n' ','|sed 's#.$##g' )
         echo "${leadSepMT}($q)" >> $metricsTimingQueryFile
 
         # Add to primary metrics table:
@@ -514,7 +548,7 @@ if $doAnalysisDataCreation ; then
       isFirstFile=false
     done < $timingFile
 
-    #################### 
+    ##################### 
 
   done
 
@@ -532,5 +566,7 @@ if $doAnalysisDataCreation ; then
 
   echo "Done processing ANALYSIS output files."
 fi
+
+set +e
 
 
