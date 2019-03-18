@@ -24,11 +24,56 @@ import java.text.DecimalFormat;
 import java.util.*;
 import java.util.stream.Stream;
 
+/**
+ * Process reads from a saturation mutagenesis experiment.
+ *
+ * <p>This tool processes reads from an experiment that systematically perturbs a mini-gene to ascertain which</p>
+ * amino-acid variations are tolerable at each codon of the open reading frame.  It's main job is to discover
+ * variations from wild-type sequence among the reads, and to summarize the variations observed.<p>
+ *
+ * <h3>Input</h3>
+ * <p>A BAM file in unsorted or query-name sorted order (so that read pairs are adjacent).  The BAM file should be
+ * aligned to the wild-type sequence of the gene under scrutiny.  You may also specify a text file listing several
+ * BAMs.</p>
+ * <p></p>
+ * <p>A fasta-formatted reference file with the wild-type sequence of the gene as a single contig.  It's best
+ * to include the entire amplicon including any expected 5' and 3' UTRs.</p>
+ * <p></p>
+ * <p>A description of the location of the open reading frame (ORF) within the reference.  For example,</p>
+ * <pre>--orf 128-1285</pre>
+ * <p>This would describe an ORF that begins at reference position 128 (1-based coordinates) and ends at
+ * reference position 1285 (inclusive).</p>
+ * It's possible (though unlikely) to have an ORF with multiple exons:  List the exon ranges separated by commas.
+ * For example,</p>
+ * <pre>--orf 128-1284,1384-1433</pre>
+ * <p>This would describe an ORF with two exons.</p>
+ * <p>The total length of the ORF must be divisible by 3, and should begin with a start codon and end with
+ * a stop codon.</p>
+ * <p></p>
+ * <p>An outputPathAndPrefix that specifies where to write the output reports.</p>
+ *
+ * <h3>Output</h3>
+ * <p>The most important report is a tab-delimited text file named outputPathAndPrefix.variantCounts which
+ * describes the observed variations from reference, the number of times each was observed, the effect of the
+ * observed variations on the codons, and their translation into amino acids.</p>
+ * <p></p>
+ * <p>There are a number of additional reports that summarize this information for each codon.</p>
+ *
+ * <h3>Usage example</h3>
+ * <pre>
+ *     gatk AnalyzeSaturationMutagenesis \
+ *     -I input_reads.bam \
+ *     -R referenceGene.fasta \
+ *     --orf 128-1285 \
+ *     -O /path/to/output/and/reportNamePrefix
+ * </pre>
+ */
+
 @DocumentedFeature
 @CommandLineProgramProperties(
         summary =
 "(Experimental) Processes reads from a MITESeq or other saturation mutagenesis experiment.\n" +
-"Main output is a tab-delimited text file outputPathPrefix.variantCounts.\n" +
+"Main output is a tab-delimited text file reportNamePrefix.variantCounts.\n" +
 "Columns are:\n" +
 "1 - Number of times the described variant was observed\n" +
 "2 - Number of molecules that covered the variant region and its flanks\n" +
@@ -41,7 +86,7 @@ import java.util.stream.Stream;
 "8 - The variant amino-acids that result from the variant codons, e.g., M:K>R indicates a missense variation from Lysine to Arginine\n" +
 "All reference coordinates are 1-based.",
         oneLineSummary = "(EXPERIMENTAL) Processes reads from a MITESeq or other saturation mutagenesis experiment.",
-        usageExample = "gatk AnalyzeSaturationMutagenesis -I some.bam -R ref.fasta --orf 128-1285 -O outputPathPrefix",
+        usageExample = "gatk AnalyzeSaturationMutagenesis -I input_reads.bam -R referenceGene.fasta --orf 128-1285 -O /path/to/output/and/reportNamePrefix",
         programGroup = CoverageAnalysisProgramGroup.class
 )
 @BetaFeature
@@ -55,7 +100,7 @@ public class AnalyzeSaturationMutagenesis extends GATKTool {
     @Argument(doc = "minimum number of wt calls flanking variant", fullName = "min-flanking-length")
     private static int minFlankingLength = 18;
 
-    @Argument(doc = "reference indices of the ORF (1-based, closed), for example, '134-180,214-238'", fullName = "orf")
+    @Argument(doc = "reference indices of the ORF (1-based, inclusive), for example, '134-180,214-238'", fullName = "orf")
     private static String orfCoords;
 
     @Argument(doc = "minimum number of observations of reported variants", fullName = "min-variant-obs")
