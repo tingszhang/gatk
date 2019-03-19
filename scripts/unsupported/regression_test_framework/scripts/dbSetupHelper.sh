@@ -342,7 +342,7 @@ if $doAnalysisDataCreation ; then
       echo "($analysisRunID, $outputFileId)" >> $analysisOutputFilesQueryFile
       
 			set +e
-      grep -q "$analysisRunID, $originalOutFileID" $analysisOutputFilesQueryFile
+			grep -q "($analysisRunID, $originalOutFileID)" $analysisOutputFilesQueryFile
       rv=$?
 			set -e 
       [ $rv -ne 0 ] && echo ",($analysisRunID, $originalOutFileID)" >> $analysisOutputFilesQueryFile
@@ -425,7 +425,7 @@ if $doAnalysisDataCreation ; then
       [ $rv -ne 0 ] && echo ",(2, NULL, '$(createGenotypeConcordanceJson $inputFile $truthFile $truthFileBaseName | jq -c .)')" >> $analysisRunsQueryFile 
 
 			set +e
-      grep -q "$analysisRunID, $originalOutFileID" $analysisOutputFilesQueryFile
+			grep -q "($analysisRunID, $originalOutFileID)" $analysisOutputFilesQueryFile
 			rv=$?
 			set -e
       [ $rv -ne 0 ] && echo ",($analysisRunID, $originalOutFileID)" >> $analysisOutputFilesQueryFile
