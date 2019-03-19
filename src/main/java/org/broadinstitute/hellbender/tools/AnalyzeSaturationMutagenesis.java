@@ -25,40 +25,37 @@ import java.util.*;
 import java.util.stream.Stream;
 
 /**
- * Process reads from a saturation mutagenesis experiment.
- *
- * <p>This tool processes reads from an experiment that systematically perturbs a mini-gene to ascertain which</p>
+ * <p>Process reads from a saturation mutagenesis experiment.</p>
+ * <p>This tool processes reads from an experiment that systematically perturbs a mini-gene to ascertain which
  * amino-acid variations are tolerable at each codon of the open reading frame.  It's main job is to discover
  * variations from wild-type sequence among the reads, and to summarize the variations observed.<p>
  *
  * <h3>Input</h3>
- * <p>A BAM file in unsorted or query-name sorted order (so that read pairs are adjacent).  The BAM file should be
+ * <ul>
+ * <li>A BAM file in unsorted or query-name sorted order (so that read pairs are adjacent).  The BAM file should be
  * aligned to the wild-type sequence of the gene under scrutiny.  You may also specify a text file listing several
- * BAMs.</p>
- * <p></p>
- * <p>A fasta-formatted reference file with the wild-type sequence of the gene as a single contig.  It's best
- * to include the entire amplicon including any expected 5' and 3' UTRs.</p>
- * <p></p>
- * <p>A description of the location of the open reading frame (ORF) within the reference.  For example,</p>
- * <pre>--orf 128-1285</pre>
- * <p>This would describe an ORF that begins at reference position 128 (1-based coordinates) and ends at
- * reference position 1285 (inclusive).</p>
+ * BAMs.</li>
+ * <li>A fasta-formatted reference file with the wild-type sequence of the gene as a single contig.  It's best
+ * to include the entire amplicon including any expected 5' and 3' UTRs.</li>
+ * <li>A description of the location of the open reading frame (ORF) within the reference.  For example,
+ * <b>--orf 128-1285</b>
+ * would describe an ORF that begins at reference position 128 (1-based coordinates) and ends at
+ * reference position 1285 (inclusive).
  * It's possible (though unlikely) to have an ORF with multiple exons:  List the exon ranges separated by commas.
- * For example,</p>
- * <pre>--orf 128-1284,1384-1433</pre>
- * <p>This would describe an ORF with two exons.</p>
- * <p>The total length of the ORF must be divisible by 3, and should begin with a start codon and end with
- * a stop codon.</p>
- * <p></p>
- * <p>An outputPathAndPrefix that specifies where to write the output reports.</p>
- *
+ * For example,
+ * <b>--orf 128-1284,1384-1433</b>
+ * would describe an ORF with two exons.
+ * The total length of the ORF must be divisible by 3, and should begin with a start codon and end with
+ * a stop codon.</li>
+ * <li>An outputPathAndPrefix that specifies where to write the output reports.</li>
+ * </ul>
  * <h3>Output</h3>
- * <p>The most important report is a tab-delimited text file named outputPathAndPrefix.variantCounts which
+ * <ul>
+ * <li>The most important report is a tab-delimited text file named outputPathAndPrefix.variantCounts which
  * describes the observed variations from reference, the number of times each was observed, the effect of the
- * observed variations on the codons, and their translation into amino acids.</p>
- * <p></p>
- * <p>There are a number of additional reports that summarize this information for each codon.</p>
- *
+ * observed variations on the codons, and their translation into amino acids.</li>
+ * <li>There are a number of additional reports that summarize this information for each codon.</li>
+ * </ul>
  * <h3>Usage example</h3>
  * <pre>
  *     gatk AnalyzeSaturationMutagenesis \
