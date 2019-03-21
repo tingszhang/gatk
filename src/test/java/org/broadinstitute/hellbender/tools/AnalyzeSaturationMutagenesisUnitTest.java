@@ -3,7 +3,6 @@ package org.broadinstitute.hellbender.tools;
 import htsjdk.samtools.SAMFileHeader;
 import org.broadinstitute.hellbender.GATKBaseTest;
 import org.broadinstitute.hellbender.tools.AnalyzeSaturationMutagenesis.*;
-import org.broadinstitute.hellbender.tools.spark.sv.evidence.ReadMetadata;
 import org.broadinstitute.hellbender.tools.spark.utils.HopscotchMap;
 import org.broadinstitute.hellbender.utils.read.ArtificialReadUtils;
 import org.broadinstitute.hellbender.utils.read.GATKRead;
@@ -466,11 +465,12 @@ public class AnalyzeSaturationMutagenesisUnitTest extends GATKBaseTest {
         // repair flaw above
         final List<SNV> list1Plus = new ArrayList<>(list1);
         list1Plus.add(new SNV(35, CALL_T, CALL_C, QUAL_10));
-        Assert.assertEquals(new PairedReadReport(report3, report4).getVariations(), combinedList);
+        final SingleReadReport report7 = new SingleReadReport(Collections.singletonList(new Interval(0, 36)), list1Plus);
+        Assert.assertEquals(new PairedReadReport(report7, report6).getVariations(), combinedList);
 
-        // now mess is up again by making the SNVs unequal
+        // now mess it up again by making the SNVs unequal
         list1Plus.set(3, new SNV(35, CALL_T, CALL_A, QUAL_30));
-        Assert.assertNull(new PairedReadReport(report5, report6).getVariations());
+        Assert.assertNull(new PairedReadReport(report7, report6).getVariations());
     }
 
     @Test
