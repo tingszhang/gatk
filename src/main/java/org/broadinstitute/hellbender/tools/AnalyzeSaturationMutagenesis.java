@@ -9,6 +9,7 @@ import org.broadinstitute.barclay.help.DocumentedFeature;
 import org.broadinstitute.hellbender.cmdline.programgroups.CoverageAnalysisProgramGroup;
 import org.broadinstitute.hellbender.engine.GATKTool;
 import org.broadinstitute.hellbender.engine.ReferenceDataSource;
+import org.broadinstitute.hellbender.engine.filters.ReadFilter;
 import org.broadinstitute.hellbender.engine.filters.ReadFilterLibrary;
 import org.broadinstitute.hellbender.exceptions.GATKException;
 import org.broadinstitute.hellbender.exceptions.UserException;
@@ -173,7 +174,10 @@ public class AnalyzeSaturationMutagenesis extends GATKTool {
     @Override
     public void traverse() {
         // ignore non-primary alignments
-        final Stream<GATKRead> reads = getTransformedReadStream(ReadFilterLibrary.PRIMARY_LINE);
+        final Stream<GATKRead> reads = getTransformedReadStream(
+                ReadFilterLibrary.PRIMARY_LINE
+                        .and(ReadFilterLibrary.NOT_DUPLICATE)
+                        .and(ReadFilterLibrary.PASSES_VENDOR_QUALITY_CHECK));
 
         if ( !pairedMode ) {
             reads.forEach(read -> {
