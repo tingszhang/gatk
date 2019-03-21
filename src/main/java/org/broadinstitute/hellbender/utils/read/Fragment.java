@@ -20,14 +20,14 @@ public class Fragment implements Locatable {
 
     public Fragment(final GATKRead read) {
         reads = Collections.singletonList(read);
-        interval = new SimpleInterval(read);
+        interval = new SimpleInterval(read.getAssignedContig(), Math.min(read.getStart(), read.getEnd()), Math.max(read.getStart(), read.getEnd()));
     }
 
     public Fragment(final Pair<GATKRead, GATKRead> pair) {
         reads = Arrays.asList(pair.getLeft(), pair.getRight());
-        interval = new SimpleInterval(pair.getLeft().getAssignedContig(),
-                Math.min(pair.getLeft().getStart(), pair.getRight().getStart()),
-                Math.max(pair.getLeft().getEnd(), pair.getRight().getEnd()));
+        final int start = Math.min(pair.getLeft().getStart(), pair.getRight().getStart());
+        final int end = Math.max(pair.getLeft().getEnd(), pair.getRight().getEnd());
+        interval = new SimpleInterval(pair.getLeft().getAssignedContig(), Math.min(start, end), Math.max(start, end));
     }
 
     public List<GATKRead> getReads() {
