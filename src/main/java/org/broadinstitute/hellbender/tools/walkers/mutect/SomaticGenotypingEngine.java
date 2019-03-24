@@ -18,10 +18,7 @@ import org.broadinstitute.hellbender.engine.FeatureContext;
 import org.broadinstitute.hellbender.engine.ReferenceContext;
 import org.broadinstitute.hellbender.tools.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.hellbender.tools.walkers.haplotypecaller.*;
-import org.broadinstitute.hellbender.utils.IndexRange;
-import org.broadinstitute.hellbender.utils.MathUtils;
-import org.broadinstitute.hellbender.utils.SimpleInterval;
-import org.broadinstitute.hellbender.utils.Utils;
+import org.broadinstitute.hellbender.utils.*;
 import org.broadinstitute.hellbender.utils.genotyper.*;
 import org.broadinstitute.hellbender.utils.haplotype.EventMap;
 import org.broadinstitute.hellbender.utils.haplotype.Haplotype;
@@ -91,7 +88,9 @@ public class SomaticGenotypingEngine {
         }
 
         final MoleculeLikelihoods<Fragment, Haplotype> log10FragmentLikelihoods = log10ReadLikelihoods.combineMates();
-        //log10FragmentLikelihoods.normalizeLikelihoods(MTAC.likelihoodArgs.phredScaledGlobalReadMismappingRate);
+        final double log10GlobalReadMismappingRate = MTAC.likelihoodArgs.phredScaledGlobalReadMismappingRate < 0 ? - Double.MAX_VALUE
+                : QualityUtils.qualToErrorProbLog10(MTAC.likelihoodArgs.phredScaledGlobalReadMismappingRate);
+        log10FragmentLikelihoods.normalizeLikelihoods(log10GlobalReadMismappingRate);
 
 
         for( final int loc : startPosKeySet ) {
