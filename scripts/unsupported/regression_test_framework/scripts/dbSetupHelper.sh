@@ -3,8 +3,19 @@
 # Path to local files associated with the runs:
 LOCAL_ROOT=~/.cromshell/cromwell-v36.dsde-methods.broadinstitute.org
 
+# List of runs:
+HC_INITIAL_RUN_LIST="84edd0ed-f084-47bb-af11-d8b47b9f1865 683dad15-3dea-4f35-8826-6d31f0e0c7bc 334ef0b9-ce97-49b3-8728-b6400396cde7 be5c2094-9ed2-4898-903d-cf519128ca48 5e7bc348-4745-4e6b-8231-bae0f57fc0b0 73a9ee75-6006-40f4-8f1b-681c38a501a8 662f5bfb-038c-491d-925b-896cc1038ff2 301fbc8e-2be1-41bd-847f-0dc4aff9f9af 001d8293-6c8c-41b9-8f07-274e49039d9b 1b557c70-a9e8-40f7-a4b2-d33c792c0255 88aba234-c27b-4bad-842e-9662704d64ca"
+
+RUN_LIST=${HC_INITIAL_RUN_LIST}
+
+################################################################################
+################################################################################
+
 # Turn on error exiting:
 set -e
+
+################################################################################
+################################################################################
 
 function printVar() 
 {
@@ -137,8 +148,64 @@ function createGenotypeConcordanceJson()
   echo "}"
 }
 
+# ============================================================================== 
+# DB Functions:
+
+MYSQL_CMD_TEMPLATE='mysql -N -s -h mysql-prd2.broadinstitute.org -u DSPRegressionTestViewer --password=DSPRegressionTestViewer -e'
+
+function getAnalysisRunIDFromDB() 
+{
+  ${MYSQL_CMD_TEMPLATE} "select max(idAnalysisRun) from DSPRegressionTesting.AnalysisRuns;" 
+}
+
+function getNextOutputFileIDFromDB() 
+{
+  ${MYSQL_CMD_TEMPLATE} "select max(idOutputFiles)+1 from DSPRegressionTesting.OutputFiles;" 
+}
+
+function getNextMetricIDFromDB() 
+{
+  ${MYSQL_CMD_TEMPLATE} "select max(idMetrics)+1 from DSPRegressionTesting.Metrics;" 
+}
+
+function getNextMetricTimingIDFromDB() 
+{
+  ${MYSQL_CMD_TEMPLATE} "select max(idMetric_Timing)+1 from DSPRegressionTesting.Metric_Timing;" 
+}
+
+function getNextMetricCFAIDFromDB() 
+{
+  ${MYSQL_CMD_TEMPLATE} "select max(idConcordance_FilterAnalysis)+1 from DSPRegressionTesting.Metric_Concordance_FilterAnalysis;" 
+}
+
+function getNextMetricCSIDFromDB() 
+{
+  ${MYSQL_CMD_TEMPLATE} "select max(idConcordance_Summary)+1 from DSPRegressionTesting.Metric_Concordance_Summary;" 
+}
+
+function getNextMetricGCCIDFromDB() 
+{
+  ${MYSQL_CMD_TEMPLATE} "select max(id)+1 from DSPRegressionTesting.Metric_GenotypeConcordance_ContingencyMetrics;" 
+}
+
+function getNextMetricGCSIDFromDB() 
+{
+  ${MYSQL_CMD_TEMPLATE} "select max(idGenotypeConcordance_SummaryMetrics)+1 from DSPRegressionTesting.Metric_GenotypeConcordance_SummaryMetrics;" 
+}
+
+function getNextMetricGCDIDFromDB() 
+{
+  ${MYSQL_CMD_TEMPLATE} "select max(idGenotypeConcordance_DetailMetrics)+1 from DSPRegressionTesting.Metric_GenotypeConcordance_DetailMetrics;" 
+}
+
+################################################################################
+################################################################################
+
 doToolDataCreation=false
 doAnalysisDataCreation=true
+
+################################################################################
+################################################################################
 
 if $doToolDataCreation ; then 
 
@@ -155,7 +222,7 @@ if $doToolDataCreation ; then
   scenarioId=1
   outputFileId=1
   isFirstFile=true
-  for r in 84edd0ed-f084-47bb-af11-d8b47b9f1865 683dad15-3dea-4f35-8826-6d31f0e0c7bc 334ef0b9-ce97-49b3-8728-b6400396cde7 be5c2094-9ed2-4898-903d-cf519128ca48 5e7bc348-4745-4e6b-8231-bae0f57fc0b0 73a9ee75-6006-40f4-8f1b-681c38a501a8 662f5bfb-038c-491d-925b-896cc1038ff2 301fbc8e-2be1-41bd-847f-0dc4aff9f9af 001d8293-6c8c-41b9-8f07-274e49039d9b 1b557c70-a9e8-40f7-a4b2-d33c792c0255 88aba234-c27b-4bad-842e-9662704d64ca ; do
+  for r in ${RUN_LIST} ; do 
 
     echo "Processing run: ${r}"
 
@@ -241,10 +308,10 @@ if $doAnalysisDataCreation ; then
 
   echo "INSERT INTO DSPRegressionTesting.Metrics(metricTableName, concreteMetricID, sourceAnalysis) VALUES " > ${metricsQueryFile}
 
-  outputFileId=199
+  outputFileId=$( getNextOutputFileIDFromDB )
   isFirstFile=true
   isFirstAnalysisFile=true
-  analysisRunID=0
+  analysisRunID=$( getAnalysisRunIDFromDB )
  
   leadSepMCFA=''
   leadSepMCS=''
@@ -254,19 +321,18 @@ if $doAnalysisDataCreation ; then
   leadSepMT=''
   leadSepM=''
 
-  # TODO: Set these values based on queries to the DB:
-  metricCFAID=1
-  metricCSID=1
+  metricCFAID=$( getNextMetricCFAIDFromDB )
+  metricCSID=$( getNextMetricCSIDFromDB )
 
-  metricGCCID=1
-  metricGCDID=1
-  metricGCSID=1
+  metricGCCID=$( getNextMetricGCCIDFromDB )
+  metricGCDID=$( getNextMetricGCDIDFromDB )
+  metricGCSID=$( getNextMetricGCSIDFromDB )
 
-  metricTID=1
+  metricTID=$( getNextMetricTimingIDFromDB )
 
-  metricID=1
+  metricID=$( getNextMetricIDFromDB )
 
-  for r in 84edd0ed-f084-47bb-af11-d8b47b9f1865 683dad15-3dea-4f35-8826-6d31f0e0c7bc 334ef0b9-ce97-49b3-8728-b6400396cde7 be5c2094-9ed2-4898-903d-cf519128ca48 5e7bc348-4745-4e6b-8231-bae0f57fc0b0 73a9ee75-6006-40f4-8f1b-681c38a501a8 662f5bfb-038c-491d-925b-896cc1038ff2 301fbc8e-2be1-41bd-847f-0dc4aff9f9af 001d8293-6c8c-41b9-8f07-274e49039d9b 1b557c70-a9e8-40f7-a4b2-d33c792c0255 88aba234-c27b-4bad-842e-9662704d64ca ; do
+  for r in ${RUN_LIST} ; do
 
     echo "$(date +%Y%m%d-%H%M%S) - Processing run: ${r}"
 
@@ -300,7 +366,7 @@ if $doAnalysisDataCreation ; then
     while read outFileInfo ; do
       
       outFile=$( echo $outFileInfo | awk '{print $3}' ) 
-			localFile="${LOCAL_ROOT}/$(echo "${outFile}" | sed 's#.*ToolComparisonWdl/##g')"
+      localFile="${LOCAL_ROOT}/$(echo "${outFile}" | sed 's#.*ToolComparisonWdl/##g')"
       shardIdx=$( echo $outFile | grep -o shard-[0-9]* | sed 's#shard-##g' )
       
       echo "    Processing output file ${outputFileId} - $outFile"
@@ -326,10 +392,10 @@ if $doAnalysisDataCreation ; then
         echo -n ',' >> ${outputFilesAnalysisQueryFile}
       fi
 
-			set +e
+      set +e
       grep -q "(1, NULL, '$(createConcordanceJson $inputFile $truthFile | jq -c .)')" $analysisRunsQueryFile
       rv=$?
-			set -e
+      set -e
       if [ $rv -ne 0 ] ; then
         if ! $isFirstFile ; then 
           echo ",(1, NULL, '$(createConcordanceJson $inputFile $truthFile | jq -c .)')" >> $analysisRunsQueryFile 
@@ -341,10 +407,10 @@ if $doAnalysisDataCreation ; then
       echo "('$FT', '$outFile', '$timeStamp', '$md5sum', 'ANALYSIS')" >> ${outputFilesAnalysisQueryFile}
       echo "($analysisRunID, $outputFileId)" >> $analysisOutputFilesQueryFile
       
-			set +e
-			grep -q "($analysisRunID, $originalOutFileID)" $analysisOutputFilesQueryFile
+      set +e
+      grep -q "($analysisRunID, $originalOutFileID)" $analysisOutputFilesQueryFile
       rv=$?
-			set -e 
+      set -e 
       [ $rv -ne 0 ] && echo ",($analysisRunID, $originalOutFileID)" >> $analysisOutputFilesQueryFile
 
       let outputFileId=${outputFileId}+1
@@ -353,7 +419,7 @@ if $doAnalysisDataCreation ; then
       if [[ $outFile =~ .*filter-analysis.txt ]] ; then
         # Get filter analysis metric:
         #q=$( gsutil cat $outFile | tail -n+2 | sed -e 's#^\([0-9a-zA-Z]*\)\([ \t]*.*\)#"\1"\2#g' | tr '\t' ',' )
-        q=$( gsutil cat $outFile | tail -n+2 | sed -e 's#^\([0-9a-zA-Z]*\)\([ \t]*.*\)#"\1"\2#g' | tr '\t' ',' )
+        q=$( cat $localFile | tail -n+2 | sed -e 's#^\([0-9a-zA-Z]*\)\([ \t]*.*\)#"\1"\2#g' | tr '\t' ',' )
         echo "${leadSepMCFA}($q)" >> $metricsConcordanceFAQueryFile 
 
         # Add to primary metrics table:
@@ -386,7 +452,7 @@ if $doAnalysisDataCreation ; then
           leadSepM=','
 
         #done < <(gsutil cat $outFile | tail -n+2)
-        done < <(gsutil cat $outFile | tail -n+2)
+        done < <(cat $localFile | tail -n+2)
       fi
 
       isFirstFile=false
@@ -399,7 +465,7 @@ if $doAnalysisDataCreation ; then
     while read outFileInfo ; do
       
       outFile=$( echo $outFileInfo | awk '{print $3}' ) 
-			localFile="${LOCAL_ROOT}/$(echo "${outFile}" | sed 's#.*ToolComparisonWdl/##g')"
+      localFile="${LOCAL_ROOT}/$(echo "${outFile}" | sed 's#.*ToolComparisonWdl/##g')"
       shardIdx=$( echo $outFile | grep -o shard-[0-9]* | sed 's#shard-##g' )
 
       echo "    Processing output file ${outputFileId} - $outFile"
@@ -418,16 +484,16 @@ if $doAnalysisDataCreation ; then
       #md5sum=$( gsutil hash -hm $outFile 2>/dev/null | grep md5 | awk '{print $NF}'| \grep -o '^[0-9A-Za-z]*$' )
       md5sum=$( md5sum-lite ${localFile} | awk '{print $1}' )
       
-			set +e
+      set +e
       grep -q "(2, NULL, '$(createGenotypeConcordanceJson $inputFile $truthFile $truthFileBaseName | jq -c .)')"  $analysisRunsQueryFile
-			rv=$?
-			set -e
+      rv=$?
+      set -e
       [ $rv -ne 0 ] && echo ",(2, NULL, '$(createGenotypeConcordanceJson $inputFile $truthFile $truthFileBaseName | jq -c .)')" >> $analysisRunsQueryFile 
 
-			set +e
-			grep -q "($analysisRunID, $originalOutFileID)" $analysisOutputFilesQueryFile
-			rv=$?
-			set -e
+      set +e
+      grep -q "($analysisRunID, $originalOutFileID)" $analysisOutputFilesQueryFile
+      rv=$?
+      set -e
       [ $rv -ne 0 ] && echo ",($analysisRunID, $originalOutFileID)" >> $analysisOutputFilesQueryFile
       
       echo ",('$FT', '$outFile', '$timeStamp', '$md5sum', 'ANALYSIS')" >> ${outputFilesAnalysisQueryFile}
@@ -500,7 +566,7 @@ if $doAnalysisDataCreation ; then
     while read outFileInfo ; do
       
       outFile=$( echo $outFileInfo | awk '{print $3}' ) 
-			localFile="${LOCAL_ROOT}/$(echo "${outFile}" | sed 's#.*ToolComparisonWdl/##g')"
+      localFile="${LOCAL_ROOT}/$(echo "${outFile}" | sed 's#.*ToolComparisonWdl/##g')"
       shardIdx=$( echo $outFile | grep -o shard-[0-9]* | sed 's#shard-##g' )
       
       echo "    Processing output file ${outputFileId} - $outFile"
