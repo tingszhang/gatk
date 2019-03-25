@@ -155,47 +155,47 @@ MYSQL_CMD_TEMPLATE='mysql -N -s -h mysql-prd2.broadinstitute.org -u DSPRegressio
 
 function getAnalysisRunIDFromDB() 
 {
-  ${MYSQL_CMD_TEMPLATE} "select max(idAnalysisRun) from DSPRegressionTesting.AnalysisRuns;" 
+  ${MYSQL_CMD_TEMPLATE} "select max(idAnalysisRun) from DSPRegressionTesting.AnalysisRuns;" 2>/dev/null
 }
 
 function getNextOutputFileIDFromDB() 
 {
-  ${MYSQL_CMD_TEMPLATE} "select max(idOutputFiles)+1 from DSPRegressionTesting.OutputFiles;" 
+  ${MYSQL_CMD_TEMPLATE} "select max(idOutputFiles)+1 from DSPRegressionTesting.OutputFiles;" 2>/dev/null
 }
 
 function getNextMetricIDFromDB() 
 {
-  ${MYSQL_CMD_TEMPLATE} "select max(idMetrics)+1 from DSPRegressionTesting.Metrics;" 
+  ${MYSQL_CMD_TEMPLATE} "select max(idMetrics)+1 from DSPRegressionTesting.Metrics;" 2>/dev/null
 }
 
 function getNextMetricTimingIDFromDB() 
 {
-  ${MYSQL_CMD_TEMPLATE} "select max(idMetric_Timing)+1 from DSPRegressionTesting.Metric_Timing;" 
+  ${MYSQL_CMD_TEMPLATE} "select max(idMetric_Timing)+1 from DSPRegressionTesting.Metric_Timing;" 2>/dev/null
 }
 
 function getNextMetricCFAIDFromDB() 
 {
-  ${MYSQL_CMD_TEMPLATE} "select max(idConcordance_FilterAnalysis)+1 from DSPRegressionTesting.Metric_Concordance_FilterAnalysis;" 
+  ${MYSQL_CMD_TEMPLATE} "select max(idConcordance_FilterAnalysis)+1 from DSPRegressionTesting.Metric_Concordance_FilterAnalysis;" 2>/dev/null
 }
 
 function getNextMetricCSIDFromDB() 
 {
-  ${MYSQL_CMD_TEMPLATE} "select max(idConcordance_Summary)+1 from DSPRegressionTesting.Metric_Concordance_Summary;" 
+  ${MYSQL_CMD_TEMPLATE} "select max(idConcordance_Summary)+1 from DSPRegressionTesting.Metric_Concordance_Summary;" 2>/dev/null
 }
 
 function getNextMetricGCCIDFromDB() 
 {
-  ${MYSQL_CMD_TEMPLATE} "select max(id)+1 from DSPRegressionTesting.Metric_GenotypeConcordance_ContingencyMetrics;" 
+  ${MYSQL_CMD_TEMPLATE} "select max(id)+1 from DSPRegressionTesting.Metric_GenotypeConcordance_ContingencyMetrics;" 2>/dev/null
 }
 
 function getNextMetricGCSIDFromDB() 
 {
-  ${MYSQL_CMD_TEMPLATE} "select max(idGenotypeConcordance_SummaryMetrics)+1 from DSPRegressionTesting.Metric_GenotypeConcordance_SummaryMetrics;" 
+  ${MYSQL_CMD_TEMPLATE} "select max(idGenotypeConcordance_SummaryMetrics)+1 from DSPRegressionTesting.Metric_GenotypeConcordance_SummaryMetrics;" 2>/dev/null
 }
 
 function getNextMetricGCDIDFromDB() 
 {
-  ${MYSQL_CMD_TEMPLATE} "select max(idGenotypeConcordance_DetailMetrics)+1 from DSPRegressionTesting.Metric_GenotypeConcordance_DetailMetrics;" 
+  ${MYSQL_CMD_TEMPLATE} "select max(idGenotypeConcordance_DetailMetrics)+1 from DSPRegressionTesting.Metric_GenotypeConcordance_DetailMetrics;" 2>/dev/null
 }
 
 ################################################################################
@@ -629,6 +629,9 @@ if $doAnalysisDataCreation ; then
   echo ";" >> ${metricsGCSummaryQueryFile}
   echo ";" >> ${metricsTimingQueryFile}
   echo ";" >> ${metricsQueryFile}
+
+  # Consolidate all files together into a single sql file:
+  cat A* > Z_MASTER_Analysis_File.SQL
 
   echo "Done processing ANALYSIS output files."
 fi
