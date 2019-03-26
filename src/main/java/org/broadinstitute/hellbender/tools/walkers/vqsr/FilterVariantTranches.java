@@ -26,7 +26,13 @@ import org.broadinstitute.hellbender.cmdline.StandardArgumentDefinitions;
 import picard.cmdline.programgroups.VariantFilteringProgramGroup;
 
 /**
- * Apply tranche filtering to VCF based on scores from an annotation in the INFO field.
+ * Apply tranche filtering to VCF based on scores from an annotation in the INFO field.  Tranches are specified in
+ * percent sensitivity to the variants in the resource files.  For example, if you specify INDEL tranches 98.0 and 99.0
+ * using the CNN_2D score the filtered VCF will contain 2 filter tranches for INDELS: CNN_2D_INDEL_Tranche_98.00_99.00
+ * and CNN_2D_INDEL_Tranche_99.00_100.00. We expect CNN_2D_INDEL_Tranche_99.00_100.00 to be more sensitive but less precise
+ * than CNN_2D_INDEL_Tranche_98.00_99.00, because variants in CNN_2D_INDEL_Tranche_99.00_100.00 have lower scores than
+ * variants in the tranche CNN_2D_INDEL_Tranche_98.00_99.00.
+ *
  *
  * <h3>Inputs</h3>
  * <ul>
@@ -35,6 +41,9 @@ import picard.cmdline.programgroups.VariantFilteringProgramGroup;
  *      <li>info-key The key from the INFO field of the VCF which contains the values that will be used to filter.</li>
  *      <li>tranche List of percent sensitivities to the known sites at which we will filter.  Must be between 0 and 100.</li>
  * </ul>
+ *
+ * If you want to remove existing filters from your VCF add the argument `--invalidate-previous-filters`.
+ *
  *
  * <h3>Outputs</h3>
  * <ul>
@@ -51,10 +60,38 @@ import picard.cmdline.programgroups.VariantFilteringProgramGroup;
  *   --resource hapmap.vcf \
  *   --resource mills.vcf \
  *   --info-key CNN_1D \
- *   --tranche 99.9 --tranche 99.0 --tranche 95 \
+ *   --snp-tranche 99.9 \
+ *   --indel-tranche 99.0 \
  *   -O filtered.vcf
  * </pre>
  *
+ * <h4>Apply tranche filters based on the scores in the info field with key CNN_2D
+ * and remove any existing filters from the VCF.</h4>
+ * <pre>
+ * gatk FilterVariantTranches \
+ *   -V input.vcf.gz \
+ *   --resource hapmap.vcf \
+ *   --resource mills.vcf \
+ *   --info-key CNN_2D \
+ *   --snp-tranche 99.9 \
+ *   --indel-tranche 99.0 \
+ *   --invalidate-previous-filters \
+ *   -O filtered.vcf
+ * </pre>
+ *
+ * <h4>Apply several tranche filters based on the scores in the info field with key CNN_2D.</h4>
+ * This will result in a VCF with filters: CNN_2D_SNP_Tranche_99.00_99.99, CNN_2D_SNP_Tranche_99.99_100
+ * CNN_2D_INDEL_Tranche_98.00_99.00, CNN_2D_INDEL_Tranche_99.00_100
+ * <pre>
+ * gatk FilterVariantTranches \
+ *   -V input.vcf.gz \
+ *   --resource hapmap.vcf \
+ *   --resource mills.vcf \
+ *   --info-key CNN_2D \
+ *   --snp-tranche 99.0 --snp-tranche 99.99 \
+ *   --indel-tranche 98.0 --indel-tranche 99.0 \
+ *   -O filtered.vcf
+ * </pre>
  */
 @DocumentedFeature
 @CommandLineProgramProperties(
