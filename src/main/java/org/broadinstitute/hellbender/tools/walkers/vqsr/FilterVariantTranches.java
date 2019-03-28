@@ -29,9 +29,13 @@ import picard.cmdline.programgroups.VariantFilteringProgramGroup;
  * Apply tranche filtering to VCF based on scores from an annotation in the INFO field.  Tranches are specified in
  * percent sensitivity to the variants in the resource files.  For example, if you specify INDEL tranches 98.0 and 99.0
  * using the CNN_2D score the filtered VCF will contain 2 filter tranches for INDELS: CNN_2D_INDEL_Tranche_98.00_99.00
- * and CNN_2D_INDEL_Tranche_99.00_100.00. We expect CNN_2D_INDEL_Tranche_99.00_100.00 to be more sensitive but less precise
- * than CNN_2D_INDEL_Tranche_98.00_99.00, because variants in CNN_2D_INDEL_Tranche_99.00_100.00 have lower scores than
- * variants in the tranche CNN_2D_INDEL_Tranche_98.00_99.00.
+ * and CNN_2D_INDEL_Tranche_99.00_100.00. Variants that scored better than the 98th percentile of variants in the
+ * resources pass through the filter and will have `.` in the filter field. We expect variants in the tranche
+ * CNN_2D_INDEL_Tranche_99.00_100.00 to be more sensitive, but less precise than CNN_2D_INDEL_Tranche_98.00_99.00,
+ * because variants in CNN_2D_INDEL_Tranche_99.00_100.00 have lower scores than variants in the tranche
+ * CNN_2D_INDEL_Tranche_98.00_99.00.  The default tranche filtering thresholds for SNPs are 99.9 and 99.99 and for
+ * INDELs they are 99.0 and 99.5.  These thresholds work well for whole genome human data but may need to be tweaked for
+ * different datasets.
  *
  *
  * <h3>Inputs</h3>
