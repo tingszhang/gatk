@@ -9,7 +9,7 @@ workflow AlignAndCall {
   }
 
   File unmapped_bam
-  Int? autosomal_coverage
+  Float? autosomal_coverage
 
   File mt_dict
   File mt_fasta
@@ -40,10 +40,9 @@ workflow AlignAndCall {
   File? gatk_override
   String? m2_extra_args
   String? m2_filter_extra_args
+  Float? vaf_filter_threshold
+  Float? f_score_beta
 
-  # Using an older version of the default Mutect LOD cutoff. This value can be changed and is only useful at low depths
-  # to catch sites that would not get caught by the LOD divided by depth filter.
-  Float lod_cutoff = 6.3
   # Read length used for optimization only. If this is too small CollectWgsMetrics might fail, but the results are not
   # affected by this number. Default is 151.
   Int? max_read_length
@@ -113,7 +112,6 @@ workflow AlignAndCall {
       # Everything is called except the control region.
       m2_extra_args = select_first([m2_extra_args, ""]) + " -L chrM:576-16024 ",
       mem = M2_mem,
-      autosomal_coverage = autosomal_coverage,
       preemptible_tries = preemptible_tries
   }
 
@@ -129,7 +127,6 @@ workflow AlignAndCall {
       # Everything is called except the control region.
       m2_extra_args = select_first([m2_extra_args, ""]) + " -L chrM:8025-9144 ",
       mem = M2_mem,
-      autosomal_coverage = autosomal_coverage,
       preemptible_tries = preemptible_tries
   }
 
@@ -162,8 +159,11 @@ workflow AlignAndCall {
       m2_extra_filtering_args = m2_filter_extra_args,
       max_alt_allele_count = 4,
       contamination = GetContamination.minor_level,
+      autosomal_coverage = autosomal_coverage,
+      vaf_filter_threshold = vaf_filter_threshold,
       blacklisted_sites = blacklisted_sites,
       blacklisted_sites_index = blacklisted_sites_index,
+      f_score_beta = f_score_beta,
       preemptible_tries = preemptible_tries
   }
 
@@ -364,7 +364,6 @@ task M2 {
   Boolean compress
   File? gga_vcf
   File? gga_vcf_idx
-  Float? autosomal_coverage
 
   String output_vcf = "raw" + if compress then ".vcf.gz" else ".vcf"
   String output_vcf_index = output_vcf + if compress then ".tbi" else ".idx"
@@ -387,7 +386,6 @@ task M2 {
   parameter_meta {
     input_bam: "Aligned Bam"
     gga_vcf: "VCF for genotype given alleles mode"
-    autosomal_coverage: "Median coverage of the autosomes for annotating potential polymorphic NuMT variants"
   }
   command <<<
       set -e
@@ -404,14 +402,13 @@ task M2 {
         -O ${output_vcf} \
         ${true='--bam-output bamout.bam' false='' make_bamout} \
         ${m2_extra_args} \
-        ${"--median-autosomal-coverage " + autosomal_coverage} \
         --annotation StrandBiasBySample \
         --mitochondria-mode \
         --max-reads-per-alignment-start 75 \
         --max-mnp-distance 0
   >>>
   runtime {
-      docker: "us.gcr.io/broad-gatk/gatk:4.1.0.0"
+      docker: "us.gcr.io/broad-gatk/gatk:4.1.1.0"
       memory: machine_mem + " MB"
       disks: "local-disk " + disk_size + " HDD"
       preemptible: select_first([preemptible_tries, 5])
@@ -438,6 +435,9 @@ task Filter {
   String? m2_extra_filtering_args
   Int max_alt_allele_count
   Float contamination
+  Float? autosomal_coverage
+  Float? vaf_filter_threshold
+  Float? f_score_beta
 
   File blacklisted_sites
   File blacklisted_sites_index
@@ -450,6 +450,11 @@ task Filter {
 
   meta {
     description: "Mutect2 Filtering for calling Snps and Indels"
+  }
+  parameter_meta {
+      autosomal_coverage: "Median coverage of the autosomes for filtering potential polymorphic NuMT variants"
+      vaf_filter_thershold: "Hard cutoff for minimum allele fraction. All sites with VAF less than this cutoff will be filtered."
+      f_score_beta: "F-Score beta balances the filtering strategy between recall and precision. The relative weight of recall to precision."
   }
   command <<<
       set -e
@@ -464,6 +469,9 @@ task Filter {
         ${m2_extra_filtering_args} \
         --max-alt-allele-count ${max_alt_allele_count} \
         --mitochondria-mode \
+        ${"--autosomal-coverage " + autosomal_coverage} \
+        ${"--min-allele-fraction " + vaf_filter_threshold} \
+        ${"--f-score-beta " + f_score_beta} \
         --contamination-estimate ${contamination}
 
       gatk VariantFiltration -V filtered.vcf \
@@ -473,7 +481,7 @@ task Filter {
 
   >>>
   runtime {
-      docker: "us.gcr.io/broad-gatk/gatk:4.1.0.0"
+      docker: "us.gcr.io/broad-gatk/gatk:4.1.1.0"
       memory: "4 MB"
       disks: "local-disk " + disk_size + " HDD"
       preemptible: select_first([preemptible_tries, 5])
@@ -502,7 +510,7 @@ task MergeStats {
     File stats = "raw.combined.stats"
   }
   runtime {
-      docker: "us.gcr.io/broad-gatk/gatk:4.1.0.0"
+      docker: "us.gcr.io/broad-gatk/gatk:4.1.1.0"
       memory: "3 MB"
       disks: "local-disk 20 HDD"
       preemptible: select_first([preemptible_tries, 5])

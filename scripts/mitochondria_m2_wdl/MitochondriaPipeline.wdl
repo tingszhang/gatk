@@ -11,11 +11,8 @@ workflow MitochondriaPipeline {
     out_vcf: "Final VCF of mitochondrial SNPs and INDELs"
   }
   File wgs_aligned_input_bam_or_cram
-  Int? autosomal_coverage
+  Float? autosomal_coverage
 
-  # Using an older version of the default Mutect LOD cutoff. This value can be changed and is only useful at low depths
-  # to catch sites that would not get caught by the LOD divided by depth filter.
-  Float lod_cutoff = 6.3
   # Read length used for optimization only. If this is too small CollectWgsMetrics might fail, but the results are not
   # affected by this number. Default is 151.
   Int? max_read_length
@@ -56,6 +53,11 @@ workflow MitochondriaPipeline {
 
   File? gatk_override
   String? m2_extra_args
+  String? m2_filter_extra_args
+  # Hard threshold for filtering low VAF sites
+  Float? vaf_filter_threshold
+  # F-Score beta balances the filtering strategy between recall and precision. The relative weight of recall to precision.
+  Float? f_score_beta
 
   #Optional runtime arguments
   Int? preemptible_tries
@@ -103,7 +105,9 @@ workflow MitochondriaPipeline {
       shift_back_chain = shift_back_chain,
       gatk_override = gatk_override,
       m2_extra_args = m2_extra_args,
-      lod_cutoff = lod_cutoff,
+      m2_filter_extra_args = m2_filter_extra_args,
+      vaf_filter_threshold = vaf_filter_threshold,
+      f_score_beta = f_score_beta,
       max_read_length = max_read_length,
       preemptible_tries = preemptible_tries
   }
@@ -181,7 +185,7 @@ task SubsetBam {
   runtime {
     memory: "3 GB"
     disks: "local-disk " + disk_size + " HDD"
-    docker: "us.gcr.io/broad-gatk/gatk:4.1.0.0"
+    docker: "us.gcr.io/broad-gatk/gatk:4.1.1.0"
     preemptible: select_first([preemptible_tries, 5])
   }
   output {
